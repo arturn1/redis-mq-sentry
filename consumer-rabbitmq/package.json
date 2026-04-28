@@ -1,0 +1,16 @@
+{
+  "name": "consumer-rabbitmq",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "scripts": {
+    "start": "ts-node index.ts"
+  },
+  "dependencies": {
+    "amqplib": "0.10.4"
+  },
+  "devDependencies": {
+    "ts-node": "10.9.2",
+    "typescript": "5.4.5",
+    "@types/amqplib": "^0.10.7"
+  }
+}
