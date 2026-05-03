@@ -49,19 +49,9 @@ router.post('/advanced', async (req: Request, res: Response) => {
         result = { ok: true, info: `Persistent message sent to exchange ${exchange}` };
         break;
       }
-      case 'setup-dlq': {
-        await ch.assertQueue(DLQ_QUEUE, { durable: true });
-        await ch.assertQueue('normal_demo', {
-          durable: true,
-          deadLetterExchange: '',
-          deadLetterRoutingKey: DLQ_QUEUE,
-        });
-        result = { ok: true, info: 'DLQ queues (durable) configured' };
-        break;
-      }
       case 'send-dlq': {
-        await ch.sendToQueue('normal_demo', Buffer.from(payload.message), { persistent: true });
-        result = { ok: true, info: 'Persistent message sent to normal_demo queue' };
+        await ch.assertQueue(DLQ_QUEUE, { durable: true });
+        result = { ok: true, info: 'Setup dql_demo queue' };
         break;
       }
       case 'consume-dlq': {

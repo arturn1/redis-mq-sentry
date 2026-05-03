@@ -144,11 +144,6 @@ export default function RabbitMQPage() {
         <div className="flex flex-col gap-2">
           <button
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 w-fit"
-            onClick={() => handleSend("send-simple", { action: "send-simple", payload: { message: "Simple queue message" } })}
-            disabled={loading}
-          >Send to simple queue</button>
-          <button
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 w-fit"
             onClick={() => handleSend("send-exchange", { action: "send-exchange", payload: { exchange: "direct_demo", type: "direct", routingKey: "key1", message: "Direct exchange message" } })}
             disabled={loading}
           >Send to direct exchange</button>
@@ -156,7 +151,7 @@ export default function RabbitMQPage() {
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 w-fit"
             onClick={() => handleSend("send-dlq", { action: "send-dlq", payload: { message: "DLQ message" } })}
             disabled={loading}
-          >Send to DLQ</button>
+          >Setup DLQ</button>
           <button
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 w-fit"
             onClick={() => handleSend("send-priority", { action: "send-priority", payload: { message: "Priority message", priority: 5 } })}

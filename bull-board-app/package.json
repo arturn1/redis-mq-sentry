@@ -6,6 +6,8 @@
     "start": "node index.js"
   },
   "dependencies": {
+    "@bull-board/ui": "^7.0.0",
+    "@bull-board/express": "^7.0.0",
     "amqplib": "0.10.4",
     "bull": "4.10.4",
     "bull-board": "2.1.3",
