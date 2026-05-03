@@ -1,3 +1,7 @@
+// Consumer RabbitMQ
+// Este serviço consome mensagens da fila 'rabbitmq-queue' e simula o processamento de cada mensagem.
+// Faz parte do laboratório de estudos de mensageria e arquitetura distribuída.
+
 import amqp, { ConsumeMessage } from 'amqplib';
 
 async function start() {

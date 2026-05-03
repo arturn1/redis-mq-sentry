@@ -1,0 +1,15 @@
+{
+  "name": "consumer-kafka",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "scripts": {
+    "start": "ts-node index.ts"
+  },
+  "dependencies": {
+    "kafkajs": "^2.2.4"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "ts-node": "^10.9.2"
+  }
+}

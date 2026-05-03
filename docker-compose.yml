@@ -1,36 +1,89 @@
-version: '3.8'
-services:
-  redis:
-    image: redis:7
-    ports:
-      - "6379:6379"
-  rabbitmq:
-    image: rabbitmq:3-management
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-  frontend-next:
-    build: ./frontend-next
-    ports:
-      - "3000:3000"
-    depends_on:
-      - bull-board-app
-  bull-board-app:
-    build: ./bull-board-app
-    ports:
-      - "4000:4000"
-    depends_on:
-      - redis
-      - rabbitmq
-  consumer-redis-fast:
-    build: ./consumer-redis-fast
-    depends_on:
-      - redis
-  consumer-redis-slow:
-    build: ./consumer-redis-slow
-    depends_on:
-      - redis
-  consumer-rabbitmq:
-    build: ./consumer-rabbitmq
-    depends_on:
-      - rabbitmq
+    version: '3.8'
+    services:
+      zookeeper:
+        image: confluentinc/cp-zookeeper:7.5.0
+        environment:
+          ZOOKEEPER_CLIENT_PORT: 2181
+          ZOOKEEPER_TICK_TIME: 2000
+        ports:
+          - "2181:2181"
+
+      kafka:
+        image: confluentinc/cp-kafka:7.5.0
+        depends_on:
+          - zookeeper
+        ports:
+          - "9092:9092"
+          - "9093:9093"
+        environment:
+          KAFKA_BROKER_ID: 1
+          KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+          KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9093
+          KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+          KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+          KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+      producer-kafka:
+        build: ./producer-kafka
+        depends_on:
+          - kafka
+        ports:
+          - "5001:5000"
+
+      consumer-kafka:
+        build: ./consumer-kafka
+        depends_on:
+          - kafka
+
+      kafka-ui:
+        image: provectuslabs/kafka-ui:latest
+        ports:
+          - "8080:8080"
+        environment:
+          KAFKA_CLUSTERS_0_NAME: local
+          KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+        depends_on:
+          - kafka
+
+      redis:
+        image: redis:7
+        ports:
+          - "6379:6379"
+      rabbitmq:
+        image: rabbitmq:3-management
+        ports:
+          - "5672:5672"
+          - "15672:15672"
+        volumes:
+          - ./Volumes/eSSD/data/rabbitmq:/var/lib/rabbitmq
+      redis-commander:
+        image: rediscommander/redis-commander:latest
+        environment:
+          - REDIS_HOSTS=local:redis:6379
+        ports:
+          - "8081:8081"
+      front-end:
+        build: ./front-end
+        ports:
+          - "3000:3000"
+        depends_on:
+          - bull-board-app
+      bull-board-app:
+        build: ./bull-board-app
+        ports:
+          - "4000:4000"
+        depends_on:
+          - redis
+          - rabbitmq
+      consumer-redis-fast:
+        build: ./consumer-redis-fast
+        depends_on:
+          - redis
+      consumer-redis-slow:
+        build: ./consumer-redis-slow
+        depends_on:
+          - redis
+      consumer-rabbitmq:
+        build: ./consumer-rabbitmq
+        depends_on:
+          - rabbitmq

@@ -1,3 +1,7 @@
+// Consumer Redis Fast
+// Este serviço consome jobs da fila 'redis-fast' (BullMQ/Bull) e simula processamento rápido.
+// Faz parte do laboratório de estudos de mensageria e arquitetura distribuída.
+
 import Bull from 'bull';
 
 const queue = new Bull('redis-fast', { redis: { host: 'redis', port: 6379 } });
