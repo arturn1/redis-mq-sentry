@@ -6,7 +6,8 @@
     "start": "ts-node index.ts"
   },
   "dependencies": {
-    "amqplib": "0.10.4"
+    "amqplib": "0.10.4",
+    "bull": "4.10.4"
   },
   "devDependencies": {
     "ts-node": "10.9.2",

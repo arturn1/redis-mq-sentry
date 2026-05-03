@@ -3,6 +3,37 @@
 import { useState, useEffect } from "react";
 
 export default function RedisPage() {
+    // Lote Redis
+    const [batchPedidos, setBatchPedidos] = useState<string[]>([""]);
+    const [batchUsuario, setBatchUsuario] = useState("");
+    const [batchMsg, setBatchMsg] = useState<string | null>(null);
+    const [batchLoading, setBatchLoading] = useState(false);
+
+    async function sendBatchRedis(e: React.FormEvent) {
+      e.preventDefault();
+      setBatchLoading(true);
+      setBatchMsg(null);
+      try {
+        const pedidos = batchPedidos.filter((t) => t.trim().length > 0);
+        if (!batchUsuario || pedidos.length === 0) {
+          setBatchMsg("Fill user and at least one order.");
+          setBatchLoading(false);
+          return;
+        }
+        const res = await fetch("/api/redis-orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ usuario: batchUsuario, pedidos }),
+        });
+        const data = await res.json();
+        setBatchMsg(data.message || "Batch sent!");
+        setBatchPedidos([""]);
+      } catch {
+        setBatchMsg("Error sending batch");
+      } finally {
+        setBatchLoading(false);
+      }
+    }
   // Bull queue demo
   const [result, setResult] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -108,6 +139,58 @@ export default function RedisPage() {
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Lote Redis */}
+        <div className="bg-white dark:bg-zinc-900 rounded shadow p-6 flex flex-col gap-4 border border-zinc-200 dark:border-zinc-800 mb-4">
+          <h2 className="text-lg font-bold mb-2 text-zinc-900 dark:text-zinc-100">Send batch to Redis (slow queue)</h2>
+          <form onSubmit={sendBatchRedis} className="flex flex-col gap-2 max-w-xl">
+            <input
+              className="border px-2 py-1 rounded"
+              placeholder="User"
+              value={batchUsuario}
+              onChange={e => setBatchUsuario(e.target.value)}
+              required
+              disabled={batchLoading}
+            />
+            {batchPedidos.map((text, idx) => (
+              <div key={idx} className="flex gap-2 items-center">
+                <textarea
+                  className="border px-2 py-1 rounded w-full"
+                  placeholder={`Order #${idx + 1}`}
+                  value={text}
+                  onChange={e => {
+                    const updated = [...batchPedidos];
+                    updated[idx] = e.target.value;
+                    setBatchPedidos(updated);
+                  }}
+                  required={idx === 0}
+                  disabled={batchLoading}
+                  rows={2}
+                />
+                <button
+                  type="button"
+                  className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-700 text-xs"
+                  onClick={() => setBatchPedidos(batchPedidos.length === 1 ? [""] : batchPedidos.filter((_, i) => i !== idx))}
+                  disabled={batchLoading || batchPedidos.length === 1}
+                >-</button>
+              </div>
+            ))}
+            <button
+              type="button"
+              className="px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-700 text-xs w-fit"
+              onClick={() => setBatchPedidos([...batchPedidos, ""])}
+              disabled={batchLoading}
+            >Add order</button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 w-fit"
+              disabled={batchLoading}
+            >Send batch</button>
+          </form>
+          {batchMsg && <div className="mt-2 text-green-700 dark:text-green-400">{batchMsg}</div>}
+          <div className="text-zinc-500 text-xs mt-2">
+            The user will be notified (simulated) at the start of batch processing.
+          </div>
+        </div>
         {/* Bull queue actions */}
         <div className="bg-white dark:bg-zinc-900 rounded shadow p-6 flex flex-col gap-4 border border-zinc-200 dark:border-zinc-800">
           <h2 className="text-lg font-bold mb-2 text-zinc-900 dark:text-zinc-100">Test Bull Queues</h2>
