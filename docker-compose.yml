@@ -87,3 +87,26 @@
         build: ./consumer-rabbitmq
         depends_on:
           - rabbitmq
+
+      prometheus:
+        image: prom/prometheus:latest
+        ports:
+          - "9090:9090"
+        volumes:
+          - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+        depends_on:
+          - bull-board-app
+
+      grafana:
+        image: grafana/grafana:latest
+        ports:
+          - "3001:3000"
+        environment:
+          - GF_SECURITY_ADMIN_USER=admin
+          - GF_SECURITY_ADMIN_PASSWORD=admin
+        volumes:
+          - ./observability/grafana/provisioning/datasources/datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml:ro
+          - ./observability/grafana/provisioning/dashboards/provider.yml:/etc/grafana/provisioning/dashboards/provider.yml:ro
+          - ./observability/grafana/provisioning/dashboards/bull-board-app.json:/etc/grafana/provisioning/dashboards/bull-board-app.json:ro
+        depends_on:
+          - prometheus

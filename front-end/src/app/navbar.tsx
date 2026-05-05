@@ -13,6 +13,18 @@ export default function Navbar() {
         rel="noopener noreferrer"
         className="hover:text-blue-400 transition-colors"
       >Redis Commander</a>
+      <a
+        href="http://localhost:9090/"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="hover:text-blue-400 transition-colors"
+      >Prometheus</a>
+      <a
+        href="http://localhost:3001/"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="hover:text-blue-400 transition-colors"
+      >Grafana</a>
       {/* Add other service UIs here */}
     </nav>
   );

@@ -28,6 +28,8 @@ docker compose up --build
 	- Front-end: http://localhost:3000
 	- Bull Board: http://localhost:4000/bull-board
 	- RabbitMQ Management: http://localhost:15672 (user/pass: guest/guest)
+	- Prometheus: http://localhost:9090
+	- Grafana: http://localhost:3001 (user/pass: admin/admin)
 
 ## Fluxo Básico
 

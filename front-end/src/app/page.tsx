@@ -40,6 +40,19 @@ export default function Home() {
             </span>
           </span>
         </li>
+        <li className="bg-zinc-50 dark:bg-zinc-900 rounded-lg px-6 py-4 shadow-sm border border-zinc-200 dark:border-zinc-800">
+          <span className="block font-semibold text-zinc-800 dark:text-zinc-100 text-lg mb-1">
+            Observabilidade (Prometheus + Grafana)
+          </span>
+          <span className="text-zinc-600 dark:text-zinc-300">
+            Métricas de requisições HTTP, tempo de resposta e saúde do processo para monitoramento básico.
+            <span className="ml-2 text-sm">
+              [<a href="http://localhost:9090" target="_blank" rel="noopener noreferrer" className="text-emerald-700 hover:underline">UI Prometheus</a>]
+              {' '}
+              [<a href="http://localhost:3001" target="_blank" rel="noopener noreferrer" className="text-orange-700 hover:underline">UI Grafana</a>]
+            </span>
+          </span>
+        </li>
       </ul>
       <p className="text-zinc-500 text-base mt-10 border-t pt-6">
         Projeto de estudo. Sinta-se à vontade para explorar, modificar e propor melhorias!
