@@ -11,6 +11,7 @@ Este projeto é um laboratório de estudos sobre arquitetura distribuída, mensa
 - **consumer-redis-fast**: Consumer de jobs BullMQ (Redis), simula processamento rápido.
 - **consumer-redis-slow**: Consumer de jobs BullMQ (Redis), simula processamento lento.
 - **consumer-rabbitmq**: Consumer de mensagens RabbitMQ.
+- **orders-api-dotnet**: API .NET 8 (Clean Architecture) para criar pedidos, persistir em EF InMemory e publicar na fila `redis-slow`.
 - **redis**: Banco de dados Redis (via Docker).
 - **rabbitmq**: Broker RabbitMQ (via Docker).
 - **sentry**: (Reservado para integração futura de observabilidade).
@@ -28,6 +29,7 @@ docker compose up --build
 	- Front-end: http://localhost:3000
 	- Bull Board: http://localhost:4000/bull-board
 	- RabbitMQ Management: http://localhost:15672 (user/pass: guest/guest)
+	- Orders API (.NET 8): http://localhost:5002/swagger
 	- Prometheus: http://localhost:9090
 	- Grafana: http://localhost:3001 (user/pass: admin/admin)
 
