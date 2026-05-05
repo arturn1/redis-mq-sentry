@@ -32,6 +32,17 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 
+# .NET
+orders-api-dotnet/**/bin/
+orders-api-dotnet/**/obj/
+orders-api-dotnet/**/*.user
+orders-api-dotnet/**/.vs/
+*.nupkg
+*.snupkg
+
+# Grafana / Prometheus persistent data
+Volumes/
+
 # Misc
 *.local
 *.sublime-workspace
