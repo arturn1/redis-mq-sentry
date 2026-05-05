@@ -1,0 +1,95 @@
+import http from 'k6/http';
+import { check, sleep } from 'k6';
+import { Trend, Counter } from 'k6/metrics';
+
+const BASE_URL = __ENV.ORDERS_API_URL || 'http://orders-api-dotnet:8080';
+
+const createOrderDuration = new Trend('orders_create_duration_ms');
+const listOrdersDuration = new Trend('orders_list_duration_ms');
+const createOrderErrors = new Counter('orders_create_errors_total');
+const listOrdersErrors = new Counter('orders_list_errors_total');
+
+export const options = {
+  scenarios: {
+    create_orders: {
+      executor: 'ramping-vus',
+      exec: 'createOrderScenario',
+      startVUs: 0,
+      stages: [
+        { duration: '45s', target: 25 },
+        { duration: '1m', target: 75 },
+        { duration: '1m30s', target: 150 },
+        { duration: '2m', target: 220 },
+        { duration: '1m', target: 300 },
+        { duration: '45s', target: 0 }
+      ],
+      gracefulRampDown: '20s'
+    },
+    list_orders: {
+      executor: 'constant-vus',
+      exec: 'listOrdersScenario',
+      vus: 6000,
+      duration: '7m'
+    }
+  },
+  thresholds: {
+    http_req_failed: ['rate<0.06'],
+    http_req_duration: ['p(95)<2500'],
+    orders_create_duration_ms: ['p(95)<3000'],
+    orders_list_duration_ms: ['p(95)<1800']
+  }
+};
+
+function randomOrderPayload() {
+  const n = Math.floor(Math.random() * 1000000);
+  const amount = (Math.random() * 500 + 10).toFixed(2);
+  return JSON.stringify({
+    customerName: `k6-user-${n}`,
+    totalAmount: Number(amount)
+  });
+}
+
+export function createOrderScenario() {
+  const res = http.post(`${BASE_URL}/api/orders`, randomOrderPayload(), {
+    headers: { 'Content-Type': 'application/json' },
+    tags: { endpoint: 'create-order' }
+  });
+
+  createOrderDuration.add(res.timings.duration);
+
+  const ok = check(res, {
+    'POST /api/orders status 201': (r) => r.status === 201
+  });
+
+  if (!ok) {
+    createOrderErrors.add(1);
+  }
+
+  sleep(0.2);
+}
+
+export function listOrdersScenario() {
+  const res = http.get(`${BASE_URL}/api/orders`, {
+    tags: { endpoint: 'list-orders' }
+  });
+
+  listOrdersDuration.add(res.timings.duration);
+
+  const ok = check(res, {
+    'GET /api/orders status 200': (r) => r.status === 200,
+    'GET /api/orders returns array': (r) => {
+      try {
+        const body = JSON.parse(r.body);
+        return Array.isArray(body);
+      } catch {
+        return false;
+      }
+    }
+  });
+
+  if (!ok) {
+    listOrdersErrors.add(1);
+  }
+
+  sleep(0.5);
+}

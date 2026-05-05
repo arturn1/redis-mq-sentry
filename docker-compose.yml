@@ -83,9 +83,104 @@
           - "5002:8080"
         environment:
           - ASPNETCORE_ENVIRONMENT=Development
-            - BullBoard__BaseUrl=http://bull-board-app:4000
+          - BullBoard__BaseUrl=http://bull-board-app:4000
         depends_on:
           - bull-board-app
+
+      grafana-k6-1:
+        image: grafana/k6:latest
+        restart: unless-stopped
+        working_dir: /scripts
+        environment:
+          - ORDERS_API_URL=http://orders-api-dotnet:8080
+          - K6_WEB_DASHBOARD=true
+          - K6_WEB_DASHBOARD_PORT=5665
+          - K6_WEB_DASHBOARD_EXPORT=/results/k6-1-orders-load-report.html
+        volumes:
+          - ./k6/scripts:/scripts:ro
+          - ./k6/results:/results
+        ports:
+          - "5665:5665"
+          - "6565:6565"
+        command: ["run", "--address", "0.0.0.0:6565", "--paused", "/scripts/orders-load.js"]
+        depends_on:
+          - orders-api-dotnet
+
+      grafana-k6-2:
+        image: grafana/k6:latest
+        restart: unless-stopped
+        working_dir: /scripts
+        environment:
+          - ORDERS_API_URL=http://orders-api-dotnet:8080
+          - K6_WEB_DASHBOARD=true
+          - K6_WEB_DASHBOARD_PORT=5666
+          - K6_WEB_DASHBOARD_EXPORT=/results/k6-2-orders-load-report.html
+        volumes:
+          - ./k6/scripts:/scripts:ro
+          - ./k6/results:/results
+        ports:
+          - "5666:5666"
+          - "6566:6565"
+        command: ["run", "--address", "0.0.0.0:6565", "--paused", "/scripts/orders-load.js"]
+        depends_on:
+          - orders-api-dotnet
+
+      grafana-k6-3:
+        image: grafana/k6:latest
+        restart: unless-stopped
+        working_dir: /scripts
+        environment:
+          - ORDERS_API_URL=http://orders-api-dotnet:8080
+          - K6_WEB_DASHBOARD=true
+          - K6_WEB_DASHBOARD_PORT=5667
+          - K6_WEB_DASHBOARD_EXPORT=/results/k6-3-orders-load-report.html
+        volumes:
+          - ./k6/scripts:/scripts:ro
+          - ./k6/results:/results
+        ports:
+          - "5667:5667"
+          - "6567:6565"
+        command: ["run", "--address", "0.0.0.0:6565", "--paused", "/scripts/orders-load.js"]
+        depends_on:
+          - orders-api-dotnet
+
+      grafana-k6-4:
+        image: grafana/k6:latest
+        restart: unless-stopped
+        working_dir: /scripts
+        environment:
+          - ORDERS_API_URL=http://orders-api-dotnet:8080
+          - K6_WEB_DASHBOARD=true
+          - K6_WEB_DASHBOARD_PORT=5668
+          - K6_WEB_DASHBOARD_EXPORT=/results/k6-4-orders-load-report.html
+        volumes:
+          - ./k6/scripts:/scripts:ro
+          - ./k6/results:/results
+        ports:
+          - "5668:5668"
+          - "6568:6565"
+        command: ["run", "--address", "0.0.0.0:6565", "--paused", "/scripts/orders-load.js"]
+        depends_on:
+          - orders-api-dotnet
+
+      grafana-k6-5:
+        image: grafana/k6:latest
+        restart: unless-stopped
+        working_dir: /scripts
+        environment:
+          - ORDERS_API_URL=http://orders-api-dotnet:8080
+          - K6_WEB_DASHBOARD=true
+          - K6_WEB_DASHBOARD_PORT=5669
+          - K6_WEB_DASHBOARD_EXPORT=/results/k6-5-orders-load-report.html
+        volumes:
+          - ./k6/scripts:/scripts:ro
+          - ./k6/results:/results
+        ports:
+          - "5669:5669"
+          - "6569:6565"
+        command: ["run", "--address", "0.0.0.0:6565", "--paused", "/scripts/orders-load.js"]
+        depends_on:
+          - orders-api-dotnet
       consumer-redis-fast:
         build: ./consumer-redis-fast
         depends_on:
@@ -120,5 +215,6 @@
           - ./observability/grafana/provisioning/dashboards/provider.yml:/etc/grafana/provisioning/dashboards/provider.yml:ro
           - ./observability/grafana/provisioning/dashboards/bull-board-app.json:/etc/grafana/provisioning/dashboards/bull-board-app.json:ro
           - ./observability/grafana/provisioning/dashboards/orders-api-dotnet.json:/etc/grafana/provisioning/dashboards/orders-api-dotnet.json:ro
+          - ./observability/grafana/provisioning/dashboards/consumers.json:/etc/grafana/provisioning/dashboards/consumers.json:ro
         depends_on:
           - prometheus

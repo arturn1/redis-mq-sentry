@@ -1,4 +1,6 @@
 
+import K6ControlCard from '@/components/K6ControlCard';
+
 export default function Home() {
   return (
     <section className="flex flex-col gap-10 py-8">
@@ -53,6 +55,7 @@ export default function Home() {
             </span>
           </span>
         </li>
+        <K6ControlCard />
       </ul>
       <p className="text-zinc-500 text-base mt-10 border-t pt-6">
         Projeto de estudo. Sinta-se à vontade para explorar, modificar e propor melhorias!
