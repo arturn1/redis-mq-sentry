@@ -1,3 +1,4 @@
+
     version: '3.8'
     services:
       zookeeper:
@@ -218,3 +219,27 @@
           - ./observability/grafana/provisioning/dashboards/consumers.json:/etc/grafana/provisioning/dashboards/consumers.json:ro
         depends_on:
           - prometheus
+      
+          # SQL Server para uso pelo orders-api-dotnet
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        container_name: sqlserver
+        environment:
+          - ACCEPT_EULA=Y
+          - SA_PASSWORD=Your_strong_password123
+          - MSSQL_PID=Developer
+        ports:
+          - "1433:1433"
+        volumes:
+          - ./Volumes/eSSD/data/sqlserver:/var/opt/mssql
+        restart: unless-stopped
+        healthcheck:
+          test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P Your_strong_password123 -Q 'SELECT 1' || exit 1"]
+          interval: 10s
+          timeout: 10s
+          retries: 10
+        networks:
+          - default
+
+
+      
