@@ -45,7 +45,7 @@ queue.process(async (job) => {
   jobsActive.inc({ queue: QUEUE_NAME });
   console.log('Consumer Redis Fast: processando job', job.id);
   try {
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 200)); // Simula processamento rápido (200ms)
     jobsProcessed.inc({ queue: QUEUE_NAME, status: 'success' });
     console.log('Consumer Redis Fast: finalizado', job.id);
   } catch (err) {

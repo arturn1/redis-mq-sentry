@@ -11,30 +11,36 @@ public class LogUploadBackgroundService : BackgroundService
     private readonly string _mongoDb;
     private readonly string _mongoCollection;
     private readonly TimeSpan _interval = TimeSpan.FromMinutes(1);
-    private readonly IServiceProvider _serviceProvider;
 
-    public LogUploadBackgroundService(IConfiguration config, IServiceProvider serviceProvider)
+    public LogUploadBackgroundService(IConfiguration config)
     {
         _appName = config["ApplicationName"] ?? "App";
         _mongoConn = config["Mongo:ConnectionString"] ?? "mongodb://mongo:27017";
         _mongoDb = config["Mongo:Database"] ?? "logs";
         _mongoCollection = config["Mongo:Collection"] ?? "app_logs";
-        _serviceProvider = serviceProvider;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        while (!stoppingToken.IsCancellationRequested)
+        try
         {
-            try
+            while (!stoppingToken.IsCancellationRequested)
             {
-                await UploadLogsAsync();
+                try
+                {
+                    await UploadLogsAsync();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[LogUploadBackgroundService] {ex.Message}");
+                }
+
+                await Task.Delay(_interval, stoppingToken);
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[LogUploadBackgroundService] {ex.Message}");
-            }
-            await Task.Delay(_interval, stoppingToken);
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
+            // Encerramento normal do host.
         }
     }
 
@@ -65,7 +71,8 @@ public class LogUploadBackgroundService : BackgroundService
                     method = cols[5],
                     action = cols[6],
                     userid = cols[7],
-                    token = cols[8]
+                    token = cols[8],
+                    stackTrace = cols.Length > 9 ? cols[9] : string.Empty
                 });
             }
             if (entries.Count > 0)
@@ -88,5 +95,6 @@ public class LogUploadBackgroundService : BackgroundService
         public string action { get; set; }
         public string userid { get; set; }
         public string token { get; set; }
+        public string stackTrace { get; set; }
     }
 }

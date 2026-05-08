@@ -19,9 +19,9 @@ async function uploadLogs() {
     const content = readFileSync(filePath, 'utf-8');
     const lines = content.split('\n').filter(Boolean);
     const docs = lines.map(line => {
-      const [appname, trace_id, timestamp, status, elapsedSeconds, method, action, userid, token] = line.split('\t');
-      return { appname, trace_id, timestamp, status, elapsedSeconds, method, action, userid, token };
-    });
+      const [appname, trace_id, timestamp, status, elapsedSeconds, method, action, userid, token, stackTrace] = line.split('\t');
+      return { appname, trace_id, timestamp, status, elapsedSeconds, method, action, userid, token, stackTrace: stackTrace ?? '' };
+    }).filter((doc) => doc.appname !== 'appname');
     if (docs.length > 0) {
       await collection.insertMany(docs);
     }

@@ -14,15 +14,19 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<BullBoardOptions>(configuration.GetSection(BullBoardOptions.SectionName));
+        services.Configure<RabbitMqOptions>(configuration.GetSection(RabbitMqOptions.SectionName));
 
         services.AddDbContext<OrdersDbContext>(options =>
             options.UseSqlServer(
                 configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("DefaultConnection string not found")));
 
         services.AddHttpClient<RedisSlowQueuePublisher>();
+        services.AddHttpClient<RedisFastQueuePublisher>();
 
         services.AddScoped<IOrderRepository, OrderRepository>();
         services.AddScoped<ISlowQueuePublisher, RedisSlowQueuePublisher>();
+        services.AddScoped<IFastQueuePublisher, RedisFastQueuePublisher>();
+        services.AddScoped<IRequestFailurePublisher, RabbitRequestFailurePublisher>();
         services.AddScoped<IOrderService, OrderService>();
 
         return services;

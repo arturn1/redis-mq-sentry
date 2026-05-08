@@ -8,11 +8,16 @@ public class OrderService : IOrderService
 {
     private readonly IOrderRepository _orderRepository;
     private readonly ISlowQueuePublisher _slowQueuePublisher;
+    private readonly IFastQueuePublisher _fastQueuePublisher;
 
-    public OrderService(IOrderRepository orderRepository, ISlowQueuePublisher slowQueuePublisher)
+    public OrderService(
+        IOrderRepository orderRepository,
+        ISlowQueuePublisher slowQueuePublisher,
+        IFastQueuePublisher fastQueuePublisher)
     {
         _orderRepository = orderRepository;
         _slowQueuePublisher = slowQueuePublisher;
+        _fastQueuePublisher = fastQueuePublisher;
     }
 
     public async Task<OrderResponse> CreateAsync(CreateOrderRequest request, CancellationToken cancellationToken)
@@ -26,10 +31,10 @@ public class OrderService : IOrderService
             Status = OrderStatus.Created
         };
 
-        await _orderRepository.AddAsync(order, cancellationToken);
 
         try
         {
+            await _orderRepository.AddAsync(order, cancellationToken);
             await _slowQueuePublisher.PublishAsync(order, cancellationToken);
             order.Status = OrderStatus.Enqueued;
         }
@@ -59,7 +64,29 @@ public class OrderService : IOrderService
     public async Task<(IReadOnlyCollection<OrderResponse> Orders, int Total)> ListPagedAsync(int page, int pageSize, CancellationToken cancellationToken)
     {
         var (orders, total) = await _orderRepository.ListPagedAsync(page, pageSize, cancellationToken);
+
+        PublishFastQueueInBackground(orders.FirstOrDefault());
+
         return (orders.OrderByDescending(x => x.CreatedAtUtc).Select(ToResponse).ToList(), total);
+    }
+
+    private void PublishFastQueueInBackground(Order order)
+    {
+        if (order == null) _ = PublishFastQueueNoThrowAsync(new Order{ TotalAmount = 0, CustomerName = "N/A" });
+        else
+        _ = PublishFastQueueNoThrowAsync(order);
+    }
+
+    private async Task PublishFastQueueNoThrowAsync(Order order)
+    {
+        try
+        {
+            await _fastQueuePublisher.PublishAsync(order, CancellationToken.None);
+        }
+        catch
+        {
+            // No fluxo de listagem, falha no redis-fast nao deve bloquear resposta HTTP.
+        }
     }
 
     private static OrderResponse ToResponse(Order order) =>

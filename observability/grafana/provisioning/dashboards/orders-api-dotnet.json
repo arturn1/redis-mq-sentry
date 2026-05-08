@@ -14,7 +14,7 @@
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
       "id": 100,
-      "title": "Requisições HTTP",
+      "title": "Requisições HTTP (janela PromQL: rate[1m])",
       "type": "row"
     },
     {
@@ -41,7 +41,7 @@
           "refId": "A"
         }
       ],
-      "title": "Taxa de Requisições (req/s)",
+      "title": "Taxa de Requisições por Endpoint (req/s, rate[1m])",
       "type": "timeseries"
     },
     {
@@ -80,7 +80,7 @@
           "refId": "A"
         }
       ],
-      "title": "Total de Requisições (acumulado)",
+      "title": "Total de Requisições (acumulado desde o restart)",
       "type": "stat"
     },
     {
@@ -88,6 +88,13 @@
       "fieldConfig": {
         "defaults": {
           "color": { "mode": "thresholds" },
+          "links": [
+            {
+              "title": "Abrir detalhamento de erros por endpoint",
+              "url": "/d/orders-api-dotnet-perf/orders-api-dotnet-perf?viewPanel=8&from=${__from}&to=${__to}",
+              "targetBlank": false
+            }
+          ],
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -117,7 +124,7 @@
           "refId": "A"
         }
       ],
-      "title": "Total de Erros (4xx + 5xx)",
+      "title": "Total de Erros 4xx+5xx (clique para detalhar por endpoint)",
       "type": "stat"
     },
     {
@@ -155,14 +162,14 @@
           "refId": "A"
         }
       ],
-      "title": "Taxa de Erro (5m)",
+      "title": "Taxa de Erro HTTP (janela rate[5m])",
       "type": "stat"
     },
     {
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
       "id": 101,
-      "title": "Tempo de Resposta",
+      "title": "Tempo de Resposta (janela quantile: bucket rate[1m])",
       "type": "row"
     },
     {
@@ -207,7 +214,7 @@
           "refId": "D"
         }
       ],
-      "title": "Latência p50 / p90 / p95 / p99",
+      "title": "Latência Global p50/p90/p95/p99 (bucket rate[1m])",
       "type": "timeseries"
     },
     {
@@ -234,14 +241,14 @@
           "refId": "A"
         }
       ],
-      "title": "Latência Média por Endpoint",
+      "title": "Latência Média por Endpoint (rate sum/count[1m])",
       "type": "timeseries"
     },
     {
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 },
       "id": 102,
-      "title": "Respostas por Status",
+      "title": "Respostas por Status (janela PromQL: rate[1m])",
       "type": "row"
     },
     {
@@ -281,7 +288,7 @@
           "refId": "A"
         }
       ],
-      "title": "Respostas por Status Code (req/s)",
+      "title": "Respostas por Status Code (req/s, rate[1m])",
       "type": "timeseries"
     },
     {
@@ -308,14 +315,14 @@
           "refId": "A"
         }
       ],
-      "title": "Erros por Endpoint (4xx/5xx)",
+      "title": "Erros por Endpoint (4xx/5xx, rate[1m])",
       "type": "timeseries"
     },
     {
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 27 },
       "id": 103,
-      "title": "Processo .NET",
+      "title": "Processo .NET (séries no período selecionado)",
       "type": "row"
     },
     {
@@ -354,7 +361,7 @@
           "refId": "C"
         }
       ],
-      "title": "Memória",
+      "title": "Memória do Processo .NET (período selecionado)",
       "type": "timeseries"
     },
     {
@@ -393,7 +400,7 @@
           "refId": "C"
         }
       ],
-      "title": "GC Collections (por geração)",
+      "title": "GC Collections por Geração (rate[1m])",
       "type": "timeseries"
     },
     {
@@ -426,7 +433,7 @@
           "refId": "B"
         }
       ],
-      "title": "Threads & Handles",
+      "title": "Threads e Handles (período selecionado)",
       "type": "timeseries"
     },
     {
@@ -453,7 +460,7 @@
           "refId": "A"
         }
       ],
-      "title": "Uso de CPU",
+      "title": "Uso de CPU (rate[1m])",
       "type": "timeseries"
     },
     {
@@ -487,14 +494,14 @@
           "refId": "A"
         }
       ],
-      "title": "Uptime",
+      "title": "Uptime (calculado no instante do período)",
       "type": "stat"
     },
     {
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 44 },
       "id": 104,
-      "title": "Capacidade Observada",
+      "title": "Capacidade Observada (máximos no período selecionado)",
       "type": "row"
     },
     {
@@ -532,7 +539,7 @@
           "refId": "A"
         }
       ],
-      "title": "Pico de Throughput (Peak RPS)",
+      "title": "Pico de Throughput (Peak RPS, max no período)",
       "type": "stat"
     },
     {
@@ -570,14 +577,14 @@
           "refId": "A"
         }
       ],
-      "title": "Pico de Concorrência (Inflight)",
+      "title": "Pico de Concorrência Inflight (max no período)",
       "type": "stat"
     },
     {
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 53 },
       "id": 105,
-      "title": "Saúde do Servidor",
+      "title": "Saúde do Servidor (máximos no período selecionado)",
       "type": "row"
     },
     {
@@ -615,7 +622,7 @@
           "refId": "A"
         }
       ],
-      "title": "Saúde Geral (%)",
+      "title": "Saúde Geral (%, max no período)",
       "type": "stat"
     },
     {
@@ -653,7 +660,7 @@
           "refId": "A"
         }
       ],
-      "title": "RAM Total Visível",
+      "title": "RAM Total Visível (max no período)",
       "type": "stat"
     },
     {
@@ -691,7 +698,7 @@
           "refId": "A"
         }
       ],
-      "title": "RAM Usada Visível",
+      "title": "RAM Usada Visível (max no período)",
       "type": "stat"
     },
     {
@@ -729,7 +736,7 @@
           "refId": "A"
         }
       ],
-      "title": "CPU Atual",
+      "title": "CPU Atual (ratio, max no período)",
       "type": "stat"
     },
     {
@@ -768,7 +775,7 @@
           "refId": "C"
         }
       ],
-      "title": "RAM Total vs Usada",
+      "title": "RAM Total vs Usada (período selecionado)",
       "type": "timeseries"
     },
     {
@@ -795,7 +802,7 @@
           "refId": "A"
         }
       ],
-      "title": "Uso de CPU (%)",
+      "title": "Uso de CPU (%) no Período Selecionado",
       "type": "timeseries"
     },
     {
@@ -828,7 +835,197 @@
           "refId": "B"
         }
       ],
-      "title": "ROM (Disco) Livre vs Usado",
+      "title": "ROM (Disco) Livre vs Usado (período selecionado)",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 78 },
+      "id": 106,
+      "title": "Falhas Capturadas no Middleware (orders_api_request_failures_total)",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2 },
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 79 },
+      "id": 23,
+      "options": {
+        "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum by (kind, method) (rate(orders_api_request_failures_total{job=\"orders-api-dotnet\"}[1m]))",
+          "legendFormat": "{{method}} / {{kind}}",
+          "refId": "A"
+        }
+      ],
+      "title": "Taxa de Falhas no Middleware (req/s, rate[1m])",
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 10 }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 79 },
+      "id": 24,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(orders_api_request_failures_total{job=\"orders-api-dotnet\"})",
+          "legendFormat": "Total",
+          "refId": "A"
+        }
+      ],
+      "title": "Total de Falhas Capturadas no Middleware (acumulado)",
+      "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 87 },
+      "id": 107,
+      "title": "Proteção de Pool SQL (modo degradado + timeouts)",
+      "type": "row"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "mappings": [
+            {
+              "options": {
+                "0": { "text": "Inativo" },
+                "1": { "text": "Ativo" }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 88 },
+      "id": 25,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "max(orders_api_db_degraded_mode{job=\"orders-api-dotnet\"}) or vector(0)",
+          "legendFormat": "Estado",
+          "refId": "A"
+        }
+      ],
+      "title": "Modo Degradado do Banco (estado atual)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 5 }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 88 },
+      "id": 26,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(increase(orders_api_db_pool_timeouts_total{job=\"orders-api-dotnet\"}[5m])) or vector(0)",
+          "legendFormat": "Timeouts",
+          "refId": "A"
+        }
+      ],
+      "title": "Timeouts de Pool SQL (últimos 5m)",
+      "type": "stat"
+    },
+    {
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2 },
+          "unit": "reqps"
+        },
+        "overrides": []
+      },
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 88 },
+      "id": 27,
+      "options": {
+        "legend": { "calcs": ["mean", "max"], "displayMode": "table", "placement": "bottom" },
+        "tooltip": { "mode": "multi" }
+      },
+      "targets": [
+        {
+          "datasource": { "type": "prometheus", "uid": "prometheus" },
+          "expr": "sum(rate(orders_api_db_pool_timeouts_total{job=\"orders-api-dotnet\"}[1m]))",
+          "legendFormat": "timeouts/s",
+          "refId": "A"
+        }
+      ],
+      "title": "Taxa de Timeouts de Pool SQL (rate[1m])",
       "type": "timeseries"
     }
   ],
@@ -838,7 +1035,7 @@
   "time": { "from": "now-30m", "to": "now" },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Orders API (.NET 8) — Performance",
+  "title": "Orders API (.NET 8) — Performance (visão padrão: últimos 30m)",
   "uid": "orders-api-dotnet-perf",
   "version": 1
 }

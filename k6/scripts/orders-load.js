@@ -11,24 +11,30 @@ const listOrdersErrors = new Counter('orders_list_errors_total');
 
 export const options = {
   scenarios: {
-    create_orders: {
-      executor: 'ramping-vus',
-      exec: 'createOrderScenario',
-      startVUs: 0,
-      stages: [
-        { duration: '1m', target: 25 },
-        // { duration: '1m', target: 75 },
-        // { duration: '1m30s', target: 150 },
-        // { duration: '2m', target: 220 },
-        // { duration: '1m', target: 300 },
-        // { duration: '45s', target: 0 }
-      ],
-      gracefulRampDown: '20s'
-    },
+    // create_orders: {
+    //   executor: 'ramping-vus',
+    //   exec: 'createOrderScenario',
+    //   startVUs: 0,
+    //   stages: [
+    //     { duration: '1m', target: 1 },
+    //     // { duration: '1m', target: 75 },
+    //     // { duration: '1m30s', target: 150 },
+    //     // { duration: '2m', target: 220 },
+    //     // { duration: '1m', target: 300 },
+    //     // { duration: '45s', target: 0 }
+    //   ],
+    //   gracefulRampDown: '20s'
+    // },
     list_orders: {
       executor: 'constant-vus',
       exec: 'listOrdersScenario',
-      vus: 20,
+      vus: 1000,
+      duration: '1m'
+    },
+    create_orders: {
+      executor: 'constant-vus',
+      exec: 'createOrderScenario',
+      vus: 1000,
       duration: '1m'
     }
   },
@@ -65,11 +71,11 @@ export function createOrderScenario() {
     createOrderErrors.add(1);
   }
 
-  sleep(0.2);
+  sleep(0.5);
 }
 
 export function listOrdersScenario() {
-  const res = http.get(`${BASE_URL}/api/orders`, {
+  const res = http.get(`${BASE_URL}/api/orders?page=1&pageSize=20`, {
     tags: { endpoint: 'list-orders' }
   });
 
@@ -77,10 +83,13 @@ export function listOrdersScenario() {
 
   const ok = check(res, {
     'GET /api/orders status 200': (r) => r.status === 200,
-    'GET /api/orders returns array': (r) => {
+    'GET /api/orders returns paged object': (r) => {
       try {
         const body = JSON.parse(r.body);
-        return Array.isArray(body);
+        if (!body || typeof body !== 'object') return false;
+        if (!Array.isArray(body.orders)) return false;
+        if (typeof body.total !== 'number') return false;
+        return body.total >= body.orders.length;
       } catch {
         return false;
       }

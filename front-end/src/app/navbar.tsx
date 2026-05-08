@@ -10,6 +10,7 @@ const internalLinks = [
   { href: '/redis',     label: 'Redis' },
   { href: '/orders-db', label: 'Orders DB' },
   { href: '/logs-db',   label: 'Logs DB' },
+  { href: '/k6',        label: 'k6 Reports' },
 ];
 
 const externalLinks = [

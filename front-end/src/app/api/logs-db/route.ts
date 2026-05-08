@@ -18,13 +18,47 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const page = Number(searchParams.get('page') || 1);
   const pageSize = Number(searchParams.get('pageSize') || 20);
+  const status = (searchParams.get('status') || '').trim();
+  const method = (searchParams.get('method') || '').trim();
+  const action = (searchParams.get('action') || '').trim();
+  const excludeActionsParam = searchParams.get('excludeActions') || '';
+  const excludeActions = excludeActionsParam
+    ? excludeActionsParam.split(',').map((a) => a.trim()).filter(Boolean)
+    : [];
+
+  function escapeRegex(value: string) {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
   try {
     const client = await getClient();
     const db = client.db(DB_NAME);
     const collection = db.collection(COLLECTION);
-    const total = await collection.countDocuments();
+    const filter: Record<string, any> = {};
+
+    if (status) {
+      filter.status = { $regex: escapeRegex(status), $options: 'i' };
+    }
+
+    if (method) {
+      filter.method = { $regex: escapeRegex(method), $options: 'i' };
+    }
+
+    if (action || excludeActions.length > 0) {
+      const actionFilter: Record<string, any> = {};
+      if (action) {
+        actionFilter.$regex = escapeRegex(action);
+        actionFilter.$options = 'i';
+      }
+      if (excludeActions.length > 0) {
+        actionFilter.$nin = excludeActions;
+      }
+      filter.action = actionFilter;
+    }
+
+    const total = await collection.countDocuments(filter);
     const logs = await collection
-      .find({})
+      .find(filter)
       .sort({ timestamp: -1 })
       .skip((page - 1) * pageSize)
       .limit(pageSize)

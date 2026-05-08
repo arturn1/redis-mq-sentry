@@ -25,18 +25,11 @@ public class OrdersController : ControllerBase
         if (request.TotalAmount <= 0)
             return BadRequest(new { message = "TotalAmount deve ser maior que zero." });
 
-        try
-        {
-            var created = await _orderService.CreateAsync(
-                new CreateOrderRequest(request.CustomerName.Trim(), request.TotalAmount),
-                cancellationToken);
+        var created = await _orderService.CreateAsync(
+            new CreateOrderRequest(request.CustomerName.Trim(), request.TotalAmount),
+            cancellationToken);
 
-            return CreatedAtAction(nameof(List), new { id = created.Id }, created);
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(502, new { message = "Falha ao publicar na fila redis-slow.", detail = ex.Message });
-        }
+        return CreatedAtAction(nameof(List), new { id = created.Id }, created);
     }
 
     [HttpGet]
@@ -44,6 +37,7 @@ public class OrdersController : ControllerBase
     {
         if (page < 1) page = 1;
         if (pageSize < 1) pageSize = 10;
+
         var (orders, total) = await _orderService.ListPagedAsync(page, pageSize, cancellationToken);
         return Ok(new { orders, total });
     }

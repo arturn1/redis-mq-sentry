@@ -56,7 +56,7 @@ queue.process(async (job) => {
       if (!batchStatus[batchId]) {
         await emailQueue.add({ usuario, tipo: 'inicio-processamento', batchId, texto });
         // Simula processamento lento
-        await new Promise((resolve) => setTimeout(resolve, 10000));
+        await new Promise((resolve) => setTimeout(resolve, 500));
         batchStatus[batchId] = { total: total || 1, done: 0, usuario };
       }
       // Atualiza total se vier diferente
@@ -72,7 +72,7 @@ queue.process(async (job) => {
     } else {
       await emailQueue.add({ usuario, tipo: 'inicio-processamento', batchId, texto });
       // Simula processamento lento
-      await new Promise((resolve) => setTimeout(resolve, 10000));
+      await new Promise((resolve) => setTimeout(resolve, 500));
       await emailQueue.add({ usuario, tipo: 'fim', texto });
     }
     jobsProcessed.inc({ queue: QUEUE_NAME, status: 'success' });

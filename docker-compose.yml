@@ -68,6 +68,8 @@
         build: ./front-end
         ports:
           - "3000:3000"
+        volumes:
+          - ./k6/results:/app/k6-reports:ro
         depends_on:
           - bull-board-app
       bull-board-app:

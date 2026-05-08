@@ -19,7 +19,7 @@ router.post('/send-lote', async (req: Request, res: Response) => {
 router.post('/send', async (req: Request, res: Response) => {
   const { type, texto, usuario } = req.body;
   if (type === 'redis-fast') {
-    await RedisService.addFast({ ts: Date.now() });
+    await RedisService.addFast({ ts: Date.now(),texto, usuario });
     return res.json({ message: 'Enviado para fila Redis (rápido)' });
   }
   if (type === 'redis-slow') {

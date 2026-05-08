@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Orders.Infrastructure;
 using Orders.Infrastructure.Persistence;
+using Orders.Api.Resilience;
 using Prometheus;
 using System.Diagnostics;
 using System.Globalization;
@@ -13,6 +14,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddSingleton<DatabaseDegradationState>();
 
 // Adiciona o serviço de background para upload dos logs
 builder.Services.AddHostedService<LogUploadBackgroundService>();

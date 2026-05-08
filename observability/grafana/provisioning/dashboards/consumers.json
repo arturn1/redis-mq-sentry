@@ -12,7 +12,7 @@
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
       "id": 100,
-      "title": "Throughput",
+      "title": "Throughput (janela PromQL: rate[1m])",
       "type": "row"
     },
     {
@@ -45,7 +45,7 @@
           "refId": "B"
         }
       ],
-      "title": "Taxa de Processamento (jobs/s) — Sucesso",
+      "title": "Taxa de Processamento de Sucesso (jobs/s, rate[1m])",
       "type": "timeseries"
     },
     {
@@ -83,14 +83,14 @@
           "refId": "B"
         }
       ],
-      "title": "Taxa de Erros (jobs/s)",
+      "title": "Taxa de Erros (jobs/s, rate[1m])",
       "type": "timeseries"
     },
     {
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 9 },
       "id": 101,
-      "title": "Totais Acumulados",
+      "title": "Volumes Não Acumulados (janela PromQL: increase[5m])",
       "type": "row"
     },
     {
@@ -109,12 +109,12 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(consumer_jobs_processed_total{job=\"consumer-redis-fast\", status=\"success\"})",
+          "expr": "sum(increase(consumer_jobs_processed_total{job=\"consumer-redis-fast\", status=\"success\"}[5m]))",
           "legendFormat": "redis-fast",
           "refId": "A"
         }
       ],
-      "title": "redis-fast — Sucesso",
+      "title": "redis-fast — Sucesso (últimos 5m)",
       "type": "stat"
     },
     {
@@ -133,12 +133,12 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(consumer_jobs_processed_total{job=\"consumer-redis-fast\", status=\"error\"}) or vector(0)",
+          "expr": "sum(increase(consumer_jobs_processed_total{job=\"consumer-redis-fast\", status=\"error\"}[5m])) or vector(0)",
           "legendFormat": "redis-fast",
           "refId": "A"
         }
       ],
-      "title": "redis-fast — Erros",
+      "title": "redis-fast — Erros (últimos 5m)",
       "type": "stat"
     },
     {
@@ -157,12 +157,12 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(consumer_jobs_processed_total{job=\"consumer-redis-slow\", status=\"success\"})",
+          "expr": "sum(increase(consumer_jobs_processed_total{job=\"consumer-redis-slow\", status=\"success\"}[5m]))",
           "legendFormat": "redis-slow",
           "refId": "A"
         }
       ],
-      "title": "redis-slow — Sucesso",
+      "title": "redis-slow — Sucesso (últimos 5m)",
       "type": "stat"
     },
     {
@@ -181,12 +181,12 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(consumer_jobs_processed_total{job=\"consumer-redis-slow\", status=\"error\"}) or vector(0)",
+          "expr": "sum(increase(consumer_jobs_processed_total{job=\"consumer-redis-slow\", status=\"error\"}[5m])) or vector(0)",
           "legendFormat": "redis-slow",
           "refId": "A"
         }
       ],
-      "title": "redis-slow — Erros",
+      "title": "redis-slow — Erros (últimos 5m)",
       "type": "stat"
     },
     {
@@ -205,12 +205,12 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(consumer_messages_processed_total{job=\"consumer-rabbitmq\", status=\"success\"})",
+          "expr": "sum(increase(consumer_messages_processed_total{job=\"consumer-rabbitmq\", status=\"success\"}[5m]))",
           "legendFormat": "rabbitmq",
           "refId": "A"
         }
       ],
-      "title": "rabbitmq — Sucesso",
+      "title": "rabbitmq — Sucesso (últimos 5m)",
       "type": "stat"
     },
     {
@@ -229,19 +229,19 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(consumer_messages_processed_total{job=\"consumer-rabbitmq\", status=\"error\"}) or vector(0)",
+          "expr": "sum(increase(consumer_messages_processed_total{job=\"consumer-rabbitmq\", status=\"error\"}[5m])) or vector(0)",
           "legendFormat": "rabbitmq",
           "refId": "A"
         }
       ],
-      "title": "rabbitmq — Erros",
+      "title": "rabbitmq — Erros (últimos 5m)",
       "type": "stat"
     },
     {
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 18 },
       "id": 102,
-      "title": "Duração de Processamento",
+      "title": "Duração de Processamento (janela quantile: rate[2m])",
       "type": "row"
     },
     {
@@ -280,7 +280,7 @@
           "refId": "C"
         }
       ],
-      "title": "Latência Redis Consumers (p50/p95/p99)",
+      "title": "Latência Redis Consumers (p50/p95/p99, bucket rate[2m])",
       "type": "timeseries"
     },
     {
@@ -313,14 +313,14 @@
           "refId": "B"
         }
       ],
-      "title": "Latência RabbitMQ Consumer (p50/p95)",
+      "title": "Latência RabbitMQ Consumer (p50/p95, bucket rate[2m])",
       "type": "timeseries"
     },
     {
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 27 },
       "id": 103,
-      "title": "Concorrência & Jobs Ativos",
+      "title": "Concorrência e Jobs Ativos (instantâneo no período)",
       "type": "row"
     },
     {
@@ -353,14 +353,14 @@
           "refId": "B"
         }
       ],
-      "title": "Jobs / Mensagens em Processamento (simultâneos)",
+      "title": "Jobs e Mensagens em Processamento (simultâneos, período selecionado)",
       "type": "timeseries"
     },
     {
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 36 },
       "id": 104,
-      "title": "Memória & Processo",
+      "title": "Memória e Processo (período selecionado)",
       "type": "row"
     },
     {
@@ -387,7 +387,7 @@
           "refId": "A"
         }
       ],
-      "title": "Heap Node.js por Consumer",
+      "title": "Heap Node.js por Consumer (período selecionado)",
       "type": "timeseries"
     },
     {
@@ -414,7 +414,7 @@
           "refId": "A"
         }
       ],
-      "title": "Event Loop Lag (s) por Consumer",
+      "title": "Event Loop Lag por Consumer (s, período selecionado)",
       "type": "timeseries"
     }
   ],
@@ -424,7 +424,7 @@
   "time": { "from": "now-30m", "to": "now" },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Consumers — Métricas",
+  "title": "Consumers — Métricas (visão padrão: últimos 30m)",
   "uid": "consumers-metrics",
   "version": 1
 }

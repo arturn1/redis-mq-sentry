@@ -12,6 +12,7 @@ interface LogEntry {
   action: string;
   userid: string;
   token: string;
+  stackTrace?: string;
 }
 
 export default function LogsDbPage() {
@@ -21,16 +22,36 @@ export default function LogsDbPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
+  const [excludeInput, setExcludeInput] = useState('/metrics');
+  const [excludeActions, setExcludeActions] = useState<string[]>(['/metrics']);
+  const [statusFilter, setStatusFilter] = useState('');
+  const [methodFilter, setMethodFilter] = useState('');
+  const [actionFilter, setActionFilter] = useState('');
 
   useEffect(() => {
-    fetchLogs(page, pageSize);
-  }, [page, pageSize]);
+    fetchLogs(page, pageSize, excludeActions, statusFilter, methodFilter, actionFilter);
+  }, [page, pageSize, excludeActions, statusFilter, methodFilter, actionFilter]);
 
-  async function fetchLogs(pageNum: number, pageSizeNum: number) {
+  async function fetchLogs(
+    pageNum: number,
+    pageSizeNum: number,
+    excluded: string[],
+    statusValue: string,
+    methodValue: string,
+    actionValue: string
+  ) {
     setLoading(true);
     setError('');
     try {
-      const res = await fetch(`/api/logs-db?page=${pageNum}&pageSize=${pageSizeNum}`);
+      const params = new URLSearchParams({
+        page: String(pageNum),
+        pageSize: String(pageSizeNum),
+      });
+      if (excluded.length > 0) params.set('excludeActions', excluded.join(','));
+      if (statusValue.trim()) params.set('status', statusValue.trim());
+      if (methodValue.trim()) params.set('method', methodValue.trim());
+      if (actionValue.trim()) params.set('action', actionValue.trim());
+      const res = await fetch(`/api/logs-db?${params.toString()}`);
       if (!res.ok) throw new Error('Failed to fetch logs');
       const data = await res.json();
       setLogs(data.logs || []);
@@ -42,9 +63,23 @@ export default function LogsDbPage() {
     }
   }
 
+  function addExclude() {
+    const val = excludeInput.trim();
+    if (val && !excludeActions.includes(val)) {
+      setExcludeActions((prev: string[]) => [...prev, val]);
+      setPage(1);
+    }
+    setExcludeInput('');
+  }
+
+  function removeExclude(action: string) {
+    setExcludeActions((prev: string[]) => prev.filter((a: string) => a !== action));
+    setPage(1);
+  }
+
   const pageCount = Math.max(1, Math.ceil(total / pageSize));
-  const successCount = logs.filter((l) => l.status?.toLowerCase().includes('ok') || l.status?.startsWith('2')).length;
-  const errorCount = logs.filter((l) => l.status?.toLowerCase().includes('error') || l.status?.startsWith('5')).length;
+  const successCount = logs.filter((l: LogEntry) => l.status?.toLowerCase().includes('ok') || l.status?.startsWith('2')).length;
+  const errorCount = logs.filter((l: LogEntry) => l.status?.toLowerCase().includes('error') || l.status?.startsWith('5')).length;
   const otherCount = logs.length - successCount - errorCount;
 
   function statusBadge(status: string) {
@@ -91,6 +126,74 @@ export default function LogsDbPage() {
 
       {error && <div className="ds-feedback-error">{error}</div>}
 
+      <div className="ds-panel">
+        <span className="ds-section-title mb-3 block">Filtros</span>
+        <div className="flex flex-col gap-2">
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+            <div className="flex flex-col gap-1">
+              <label className="ds-text-muted text-xs">Status (contains)</label>
+              <input
+                className="ds-input py-1 text-xs"
+                placeholder="200, ok, error..."
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="ds-text-muted text-xs">Method (contains)</label>
+              <input
+                className="ds-input py-1 text-xs"
+                placeholder="GET, POST..."
+                value={methodFilter}
+                onChange={(e) => {
+                  setMethodFilter(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="ds-text-muted text-xs">Action (contains)</label>
+              <input
+                className="ds-input py-1 text-xs font-mono"
+                placeholder="/api/orders"
+                value={actionFilter}
+                onChange={(e) => {
+                  setActionFilter(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+          </div>
+
+          <label className="ds-text-muted text-xs">Excluir actions (ex: /metrics, /health)</label>
+          <div className="flex gap-2 items-center flex-wrap">
+            {excludeActions.map((a) => (
+              <span key={a} className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-mono text-slate-700">
+                {a}
+                <button
+                  className="ml-1 text-slate-400 hover:text-rose-600 font-bold"
+                  onClick={() => removeExclude(a)}
+                  title="Remover"
+                >×</button>
+              </span>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <input
+              className="ds-input w-48 py-1 text-xs font-mono"
+              placeholder="/metrics"
+              value={excludeInput}
+              onChange={(e) => setExcludeInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && addExclude()}
+            />
+            <button className="ds-btn-ghost text-xs" onClick={addExclude}>+ Adicionar</button>
+          </div>
+        </div>
+      </div>
+
       <div className="ds-panel border-t-4 border-t-slate-400">
         <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-3 gap-2">
           <span className="ds-section-title">📜 Logs</span>
@@ -110,16 +213,17 @@ export default function LogsDbPage() {
                 <th className="p-2 border-b border-slate-200 text-left">Action</th>
                 <th className="p-2 border-b border-slate-200 text-left">User ID</th>
                 <th className="p-2 border-b border-slate-200 text-left">Token (hash)</th>
+                <th className="p-2 border-b border-slate-200 text-left">Stack Trace</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={9} className="text-center p-4 text-slate-500">Loading...</td>
+                  <td colSpan={10} className="text-center p-4 text-slate-500">Loading...</td>
                 </tr>
               ) : logs.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="text-center p-4 text-slate-500">No logs found.</td>
+                  <td colSpan={10} className="text-center p-4 text-slate-500">No logs found.</td>
                 </tr>
               ) : (
                 logs.map((log) => (
@@ -133,6 +237,7 @@ export default function LogsDbPage() {
                     <td className="p-2 border-b border-slate-100">{log.action}</td>
                     <td className="p-2 border-b border-slate-100">{log.userid}</td>
                     <td className="p-2 border-b border-slate-100 font-mono">{log.token}</td>
+                    <td className="p-2 border-b border-slate-100 max-w-xl whitespace-pre-wrap break-all text-[11px] text-slate-600">{log.stackTrace || '-'}</td>
                   </tr>
                 ))
               )}
