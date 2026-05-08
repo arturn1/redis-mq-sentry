@@ -40,9 +40,11 @@ public class OrdersController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> List(CancellationToken cancellationToken)
+    public async Task<IActionResult> List([FromQuery] int page = 1, [FromQuery] int pageSize = 10, CancellationToken cancellationToken = default)
     {
-        var orders = await _orderService.ListAsync(cancellationToken);
-        return Ok(orders);
+        if (page < 1) page = 1;
+        if (pageSize < 1) pageSize = 10;
+        var (orders, total) = await _orderService.ListPagedAsync(page, pageSize, cancellationToken);
+        return Ok(new { orders, total });
     }
 }

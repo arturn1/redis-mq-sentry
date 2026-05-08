@@ -12,6 +12,7 @@ RUN dotnet publish Orders.Api/Orders.Api.csproj -c Release -o /app/publish /p:Us
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
+RUN mkdir -p /logger/logs
 COPY --from=build /app/publish .
 
 EXPOSE 8080

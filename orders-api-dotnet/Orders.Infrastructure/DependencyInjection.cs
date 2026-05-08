@@ -16,7 +16,8 @@ public static class DependencyInjection
         services.Configure<BullBoardOptions>(configuration.GetSection(BullBoardOptions.SectionName));
 
         services.AddDbContext<OrdersDbContext>(options =>
-            options.UseInMemoryDatabase("orders-db"));
+            options.UseSqlServer(
+                configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("DefaultConnection string not found")));
 
         services.AddHttpClient<RedisSlowQueuePublisher>();
 

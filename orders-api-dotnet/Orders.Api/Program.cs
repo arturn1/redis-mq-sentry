@@ -1,4 +1,6 @@
+using Microsoft.EntityFrameworkCore;
 using Orders.Infrastructure;
+using Orders.Infrastructure.Persistence;
 using Prometheus;
 using System.Diagnostics;
 using System.Globalization;
@@ -9,10 +11,19 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-// builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen();
 builder.Services.AddInfrastructure(builder.Configuration);
 
+// Adiciona o serviço de background para upload dos logs
+builder.Services.AddHostedService<LogUploadBackgroundService>();
+
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<OrdersDbContext>();
+    db.Database.Migrate();
+}
 
 var inflightRequests = 0L;
 var peakInflightRequests = 0L;
@@ -21,6 +32,7 @@ var peakRps = 0L;
 TimeSpan? lastCpuTotalTime = null;
 DateTimeOffset? lastCpuSampleAt = null;
 
+#region Metrics
 static double Clamp01(double value) => Math.Max(0, Math.Min(1, value));
 
 static string? TryReadFirst(params string[] paths)
@@ -126,6 +138,7 @@ static double GetVisibleCpuCores()
 
 	return Environment.ProcessorCount;
 }
+
 
 var currentInflightGauge = Metrics.CreateGauge(
 	"orders_api_inflight_requests",
@@ -301,46 +314,18 @@ _ = Task.Run(async () =>
 		timer.Dispose();
 	}
 });
+#endregion
 
 app.Lifetime.ApplicationStopping.Register(() => rpsSamplerCts.Cancel());
 app.Lifetime.ApplicationStopping.Register(() => healthSamplerCts.Cancel());
 
-// app.UseSwagger();
-// app.UseSwaggerUI();
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseAuthorization();
 app.UseHttpMetrics();
-app.Use(async (_context, next) =>
-{
-	var inflightNow = Interlocked.Increment(ref inflightRequests);
-	currentInflightGauge.Set(inflightNow);
 
-	while (true)
-	{
-		var observedPeak = Interlocked.Read(ref peakInflightRequests);
-		if (inflightNow <= observedPeak)
-		{
-			break;
-		}
-
-		if (Interlocked.CompareExchange(ref peakInflightRequests, inflightNow, observedPeak) == observedPeak)
-		{
-			peakInflightGauge.Set(inflightNow);
-			break;
-		}
-	}
-
-	try
-	{
-		await next();
-	}
-	finally
-	{
-		Interlocked.Increment(ref completedInCurrentSecond);
-		var inflightAfter = Interlocked.Decrement(ref inflightRequests);
-		currentInflightGauge.Set(inflightAfter);
-	}
-});
+app.UseMiddleware<RequestLoggerMiddleware>();
 app.MapControllers();
 app.MapMetrics();
 

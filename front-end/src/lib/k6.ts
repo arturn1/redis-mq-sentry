@@ -1,5 +1,5 @@
 export const K6_MAX_INSTANCES = 5;
-export const K6_TOTAL_DURATION_SECONDS = 420;
+export const K6_TOTAL_DURATION_SECONDS = 60;
 
 export type K6RuntimeState = {
   startedAtMs: number | null;

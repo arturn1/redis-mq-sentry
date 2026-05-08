@@ -7,6 +7,8 @@ export default function Navbar() {
       <Link href="/rabbitmq" className="hover:text-blue-400 transition-colors">RabbitMQ</Link>
       <Link href="/kafka" className="hover:text-blue-400 transition-colors">Kafka</Link>
       <Link href="/redis" className="hover:text-blue-400 transition-colors">Redis</Link>
+      <Link href="/orders-db" className="hover:text-blue-400 transition-colors">Orders DB</Link>
+      <Link href="/logs-db" className="hover:text-blue-400 transition-colors">Logs DB</Link>
       <a
         href="http://localhost:8081/"
         target="_blank"

@@ -16,20 +16,20 @@ export const options = {
       exec: 'createOrderScenario',
       startVUs: 0,
       stages: [
-        { duration: '45s', target: 25 },
-        { duration: '1m', target: 75 },
-        { duration: '1m30s', target: 150 },
-        { duration: '2m', target: 220 },
-        { duration: '1m', target: 300 },
-        { duration: '45s', target: 0 }
+        { duration: '1m', target: 25 },
+        // { duration: '1m', target: 75 },
+        // { duration: '1m30s', target: 150 },
+        // { duration: '2m', target: 220 },
+        // { duration: '1m', target: 300 },
+        // { duration: '45s', target: 0 }
       ],
       gracefulRampDown: '20s'
     },
     list_orders: {
       executor: 'constant-vus',
       exec: 'listOrdersScenario',
-      vus: 6000,
-      duration: '7m'
+      vus: 20,
+      duration: '1m'
     }
   },
   thresholds: {

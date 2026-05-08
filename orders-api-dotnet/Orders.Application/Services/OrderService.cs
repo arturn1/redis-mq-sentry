@@ -46,6 +46,7 @@ public class OrderService : IOrderService
         return ToResponse(order);
     }
 
+
     public async Task<IReadOnlyCollection<OrderResponse>> ListAsync(CancellationToken cancellationToken)
     {
         var orders = await _orderRepository.ListAsync(cancellationToken);
@@ -53,6 +54,12 @@ public class OrderService : IOrderService
             .OrderByDescending(x => x.CreatedAtUtc)
             .Select(ToResponse)
             .ToList();
+    }
+
+    public async Task<(IReadOnlyCollection<OrderResponse> Orders, int Total)> ListPagedAsync(int page, int pageSize, CancellationToken cancellationToken)
+    {
+        var (orders, total) = await _orderRepository.ListPagedAsync(page, pageSize, cancellationToken);
+        return (orders.OrderByDescending(x => x.CreatedAtUtc).Select(ToResponse).ToList(), total);
     }
 
     private static OrderResponse ToResponse(Order order) =>
