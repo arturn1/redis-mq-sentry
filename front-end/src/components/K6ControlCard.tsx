@@ -93,27 +93,28 @@ export default function K6ControlCard() {
   }
 
   return (
-    <li className="bg-zinc-50 dark:bg-zinc-900 rounded-lg px-6 py-4 shadow-sm border border-zinc-200 dark:border-zinc-800">
-      <span className="block font-semibold text-zinc-800 dark:text-zinc-100 text-lg mb-1">Teste de Carga (Grafana k6)</span>
-      <span className="text-zinc-600 dark:text-zinc-300 block mb-3">
-        Cada instância inicia pausada. Clique em Start para começar e use o botão + para habilitar uma nova instância k6.
-      </span>
+    <li className="ds-panel border-t-4 border-t-violet-400 flex flex-col gap-4 list-none">
 
-      <div className="mb-4 flex items-center gap-3">
-        <button
-          type="button"
-          onClick={enableNextInstance}
-          disabled={enabledCount >= MAX_INSTANCES}
-          className="rounded-md bg-zinc-800 px-3 py-2 text-white font-semibold hover:bg-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          + habilitar outro k6
-        </button>
-        <span className="text-sm text-zinc-600 dark:text-zinc-300">
-          Ativas: {enabledCount}/{MAX_INSTANCES}
+      {/* Header */}
+      <div className="flex items-start justify-between">
+        <span className="text-3xl leading-none">🔬</span>
+        <span className="flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+          Online
         </span>
       </div>
 
-      <div className="space-y-4">
+      <div className="flex flex-col gap-1">
+        <p className="ds-section-title">Teste de Carga — Grafana k6</p>
+        <p className="text-xs font-medium text-slate-400">Load Testing · k6 · {enabledCount}/{MAX_INSTANCES} instâncias</p>
+        <p className="ds-section-subtitle mt-1">
+          Cada instância inicia pausada. Clique em <strong>Start</strong> para disparar o teste.
+          Use <strong>+ instância</strong> para habilitar mais workers em paralelo.
+        </p>
+      </div>
+
+      {/* Instances */}
+      <div className="flex flex-col gap-3 border-t border-slate-100 pt-4">
         {enabledInstances.map((instanceId) => {
           const status = statusByInstance[instanceId];
           const isStarting = Boolean(starting[instanceId]);
@@ -121,48 +122,75 @@ export default function K6ControlCard() {
           const elapsed = status?.elapsedSeconds ?? 0;
           const total = status?.totalSeconds ?? TOTAL_SECONDS;
           const progress = status?.progressPercent ?? 0;
+          const phase = status?.phase ?? 'idle';
+
+          const phaseColor =
+            phase === 'running' ? 'text-sky-600' :
+            phase === 'completed' ? 'text-emerald-600' :
+            'text-slate-400';
 
           return (
-            <div key={instanceId} className="rounded-md border border-zinc-200 dark:border-zinc-700 p-4">
-              <div className="flex flex-wrap items-center gap-3 mb-2">
-                <span className="font-semibold text-zinc-800 dark:text-zinc-100">k6-{instanceId}</span>
-                <button
-                  type="button"
-                  onClick={() => startK6Test(instanceId)}
-                  disabled={isStarting || status?.running}
-                  className="rounded-md bg-indigo-600 px-3 py-1.5 text-white font-semibold hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {isStarting ? 'Iniciando...' : `Start k6-${instanceId}`}
-                </button>
-                <a
-                  href={`http://localhost:${5664 + instanceId}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-indigo-700 hover:underline text-sm"
-                >
-                  Dashboard k6-{instanceId}
-                </a>
+            <div key={instanceId} className="ds-stat-box flex flex-col gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="ds-section-title text-base">k6-{instanceId}</span>
+                  <span className={`text-xs font-semibold uppercase tracking-wide ${phaseColor}`}>
+                    {phase}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => startK6Test(instanceId)}
+                    disabled={isStarting || status?.running}
+                    className="ds-btn-primary py-1.5 text-xs"
+                  >
+                    {isStarting ? 'Iniciando…' : `▶ Start k6-${instanceId}`}
+                  </button>
+                  <a
+                    href={`http://localhost:${5664 + instanceId}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ds-btn-ghost"
+                  >
+                    Dashboard ↗
+                  </a>
+                </div>
               </div>
 
-              <p className="text-sm text-zinc-700 dark:text-zinc-300 mb-2">
-                Status: {status?.phase || 'idle'} | Tempo: {formatSeconds(elapsed)} / {formatSeconds(total)}
-              </p>
-
-              <div className="w-full h-2 rounded bg-zinc-200 dark:bg-zinc-700 overflow-hidden mb-2">
-                <div
-                  className="h-full bg-indigo-600 transition-all"
-                  style={{ width: `${Math.max(0, Math.min(progress, 100))}%` }}
-                />
+              {/* Progress */}
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-1.5 rounded-full bg-slate-200 overflow-hidden">
+                  <div
+                    className="h-full rounded-full bg-violet-500 transition-all"
+                    style={{ width: `${Math.max(0, Math.min(progress, 100))}%` }}
+                  />
+                </div>
+                <span className="ds-text-muted tabular-nums whitespace-nowrap">
+                  {formatSeconds(elapsed)} / {formatSeconds(total)}
+                </span>
               </div>
 
               {info && (
-                <p className={`text-sm ${info.ok ? 'text-emerald-700' : 'text-red-700'}`}>
+                <p className={info.ok ? 'ds-feedback-success text-xs py-1' : 'ds-feedback-error text-xs py-1'}>
                   {info.message}
                 </p>
               )}
             </div>
           );
         })}
+      </div>
+
+      {/* Add instance button */}
+      <div className="border-t border-slate-100 pt-3">
+        <button
+          type="button"
+          onClick={enableNextInstance}
+          disabled={enabledCount >= MAX_INSTANCES}
+          className="ds-btn-ghost w-full justify-center"
+        >
+          + habilitar instância ({enabledCount}/{MAX_INSTANCES})
+        </button>
       </div>
     </li>
   );

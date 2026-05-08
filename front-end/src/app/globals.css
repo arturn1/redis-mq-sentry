@@ -1,26 +1,202 @@
 @import "tailwindcss";
 
+/* ─── Tokens globais ─────────────────────────────────────────────────────── */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f1f5f9; /* slate-100 */
+  --foreground: #0f172a; /* slate-900 */
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ─── Reset base ─────────────────────────────────────────────────────────── */
+
+* {
+  box-sizing: border-box;
 }
 
 body {
+  min-height: 100vh;
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+a {
+  text-decoration: none;
+}
+
+/* ─── Componentes reutilizáveis ──────────────────────────────────────────── */
+
+@layer components {
+
+  /* === LAYOUT / PÁGINA === */
+
+  .ds-page {
+    @apply mx-auto max-w-screen-xl px-4 py-8;
+  }
+
+  /* ─── PAINÉIS / CARDS ─── */
+
+  .ds-panel {
+    @apply rounded-2xl border border-slate-200 bg-white p-5 shadow-sm;
+  }
+
+  .ds-panel-empty {
+    @apply rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-600;
+  }
+
+  /* ─── CARDS DE LISTA ─── */
+
+  .ds-list-item {
+    @apply w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-left transition
+           hover:border-slate-300 hover:bg-slate-100;
+  }
+
+  .ds-list-item-selected {
+    @apply w-full rounded-xl border border-slate-900 bg-slate-900 p-3 text-left text-white;
+  }
+
+  /* ─── CAIXAS DE ESTATÍSTICA ─── */
+
+  .ds-stat-box {
+    @apply rounded-xl bg-slate-50 p-3;
+  }
+
+  .ds-stat-label {
+    @apply text-xs font-medium uppercase tracking-wide text-slate-500;
+  }
+
+  .ds-stat-value {
+    @apply mt-1 text-lg font-semibold text-slate-900;
+  }
+
+  /* ─── TIPOGRAFIA ─── */
+
+  .ds-section-title {
+    @apply text-lg font-semibold text-slate-900;
+  }
+
+  .ds-section-subtitle {
+    @apply text-sm text-slate-600;
+  }
+
+  .ds-text-muted {
+    @apply text-xs text-slate-500;
+  }
+
+  /* ─── FORMULÁRIOS ─── */
+
+  .ds-label {
+    @apply mb-1 block text-sm font-medium text-slate-700;
+  }
+
+  .ds-input {
+    @apply w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900
+           outline-none transition focus:border-slate-500;
+  }
+
+  .ds-input-disabled {
+    @apply w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-700;
+  }
+
+  .ds-select {
+    @apply w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900
+           outline-none transition focus:border-slate-500;
+  }
+
+  .ds-input-inline {
+    @apply mt-1 w-full bg-transparent text-lg font-semibold text-slate-900
+           outline-none transition focus:text-slate-700;
+  }
+
+  .ds-search-input {
+    @apply w-full rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-900
+           outline-none ring-0 transition focus:border-slate-500;
+  }
+
+  /* ─── BOTÕES ─── */
+
+  .ds-btn-primary {
+    @apply rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition
+           hover:bg-slate-700 disabled:cursor-not-allowed disabled:bg-slate-400;
+  }
+
+  .ds-btn-ai {
+    @apply rounded-xl bg-gradient-to-r from-fuchsia-600 via-violet-600 to-cyan-500 px-4 py-2 text-sm font-semibold text-white shadow-sm transition
+           hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .ds-btn-ai-ghost {
+    @apply rounded-xl border border-fuchsia-200 bg-gradient-to-r from-fuchsia-50 via-violet-50 to-cyan-50 px-3 py-1.5 text-xs font-semibold text-fuchsia-700 transition
+           hover:from-fuchsia-100 hover:via-violet-100 hover:to-cyan-100
+           disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .ds-btn-ghost {
+    @apply rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-semibold
+           transition hover:bg-slate-100
+           disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .ds-btn-ghost-selected {
+    @apply rounded-lg border border-white/30 px-3 py-1.5 text-xs font-semibold
+           transition hover:bg-white/10;
+  }
+
+  .ds-btn-warning {
+    @apply rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs
+           font-semibold text-amber-800 transition
+           hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .ds-btn-warning-selected {
+    @apply rounded-lg border border-amber-300/60 bg-amber-300/20 px-3 py-1.5 text-xs
+           font-semibold text-amber-50 transition
+           hover:bg-amber-300/30 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .ds-btn-icon {
+    @apply inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-300
+           bg-white text-slate-700 transition hover:bg-slate-100;
+  }
+
+  /* ─── BADGES / TAGS ─── */
+
+  .ds-badge {
+    @apply rounded-full bg-slate-200 px-2 py-1 text-xs font-semibold text-slate-700;
+  }
+
+  .ds-badge-success {
+    @apply rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700;
+  }
+
+  .ds-badge-neutral {
+    @apply rounded-full bg-slate-200 px-2.5 py-1 text-xs font-medium text-slate-700;
+  }
+
+  /* ─── FEEDBACK / ALERTAS ─── */
+
+  .ds-feedback-success {
+    @apply rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-700;
+  }
+
+  .ds-feedback-error {
+    @apply rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700;
+  }
+
+  /* ─── AVATAR ─── */
+
+  .ds-avatar-fallback {
+    @apply flex h-10 w-10 items-center justify-center rounded-full
+           bg-slate-200 text-xs font-semibold text-slate-700;
+  }
+
+  .ds-avatar-lg-fallback {
+    @apply flex h-12 w-12 items-center justify-center rounded-full
+           bg-slate-200 text-sm font-semibold text-slate-700;
+  }
 }

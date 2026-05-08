@@ -22,7 +22,6 @@ export default function OrdersDbPage() {
     fetchOrders(page);
   }, [page]);
 
-
   async function fetchOrders(pageNum: number) {
     setLoading(true);
     setError('');
@@ -39,7 +38,6 @@ export default function OrdersDbPage() {
       setLoading(false);
     }
   }
-
 
   async function handleAddOrder(e: React.FormEvent) {
     e.preventDefault();
@@ -64,97 +62,143 @@ export default function OrdersDbPage() {
     }
   }
 
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const enqueuedCount = orders.filter((o) => o.status === 'Enqueued').length;
+  const failedCount = orders.filter((o) => o.status === 'EnqueueFailed').length;
+  const pendingCount = orders.length - enqueuedCount - failedCount;
+
+  function statusBadge(status?: string) {
+    if (status === 'Enqueued') {
+      return <span className="ds-badge-success">Enqueued</span>;
+    }
+    if (status === 'EnqueueFailed') {
+      return <span className="rounded-full bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-700">Failed</span>;
+    }
+    return <span className="ds-badge-neutral">Pending</span>;
+  }
+
   return (
-    <div className="max-w-2xl mx-auto py-8">
-      <h1 className="text-2xl font-bold mb-4">Orders Database</h1>
-      <form onSubmit={handleAddOrder} className="mb-6 flex gap-2 items-end">
-        <div>
-          <label className="block text-sm font-medium">Customer Name</label>
-          <input
-            className="border rounded px-2 py-1 w-40"
-            value={customerName}
-            onChange={e => setCustomerName(e.target.value)}
-            required
-          />
+    <div className="ds-page flex flex-col gap-6">
+      <div className="flex flex-col gap-1">
+        <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
+          REST API · .NET 8 · Orders
+        </p>
+        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Orders Database</h1>
+        <p className="ds-section-subtitle mt-1 max-w-2xl">
+          Cadastro e acompanhamento de pedidos persistidos na API de Orders.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="ds-panel border-t-4 border-t-violet-400 lg:col-span-2">
+          <p className="ds-section-title mb-3">➕ Novo Pedido</p>
+          <form onSubmit={handleAddOrder} className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+            <div className="md:col-span-2">
+              <label className="ds-label">Customer Name</label>
+              <input
+                className="ds-input"
+                value={customerName}
+                onChange={e => setCustomerName(e.target.value)}
+                required
+                disabled={loading}
+              />
+            </div>
+            <div>
+              <label className="ds-label">Total Amount</label>
+              <input
+                type="number"
+                className="ds-input"
+                value={totalAmount}
+                min={1}
+                onChange={e => setTotalAmount(Number(e.target.value))}
+                required
+                disabled={loading}
+              />
+            </div>
+            <button type="submit" className="ds-btn-primary w-fit" disabled={loading}>
+              {loading ? 'Saving...' : 'Add Order'}
+            </button>
+          </form>
+          {error && <div className="ds-feedback-error mt-3">{error}</div>}
         </div>
-        <div>
-          <label className="block text-sm font-medium">Total Amount</label>
-          <input
-            type="number"
-            className="border rounded px-2 py-1 w-24"
-            value={totalAmount}
-            min={1}
-            onChange={e => setTotalAmount(Number(e.target.value))}
-            required
-          />
+
+        <div className="ds-panel border-t-4 border-t-violet-400 flex flex-col gap-2">
+          <p className="ds-section-title">📊 Summary</p>
+          <div className="ds-stat-box">
+            <p className="ds-stat-label">Total (page)</p>
+            <p className="ds-stat-value">{orders.length}</p>
+          </div>
+          <div className="ds-stat-box">
+            <p className="ds-stat-label">Enqueued</p>
+            <p className="ds-stat-value text-emerald-700">{enqueuedCount}</p>
+          </div>
+          <div className="ds-stat-box">
+            <p className="ds-stat-label">Failed</p>
+            <p className="ds-stat-value text-rose-700">{failedCount}</p>
+          </div>
+          <div className="ds-stat-box">
+            <p className="ds-stat-label">Pending</p>
+            <p className="ds-stat-value">{pendingCount}</p>
+          </div>
         </div>
-        <button
-          type="submit"
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50"
-          disabled={loading}
-        >
-          Add Order
-        </button>
-      </form>
-      {error && <div className="text-red-600 mb-2">{error}</div>}
-      <div className="bg-white dark:bg-zinc-900 rounded shadow p-6 border border-zinc-200 dark:border-zinc-800 mt-8">
-        <h2 className="text-xl font-bold mb-4 text-zinc-900 dark:text-zinc-100">Orders (SQL Server)</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full border text-sm">
+      </div>
+
+      <div className="ds-panel border-t-4 border-t-violet-400">
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <p className="ds-section-title">📋 Orders (SQL Server)</p>
+          <span className="ds-text-muted">
+            Page {page} of {pageCount} ({total} orders)
+          </span>
+        </div>
+
+        <div className="overflow-x-auto rounded-xl border border-slate-200">
+          <table className="min-w-full text-sm">
             <thead>
-              <tr className="bg-zinc-100 dark:bg-zinc-800">
-                <th className="p-2 border">ID</th>
-                <th className="p-2 border">Customer</th>
-                <th className="p-2 border">Total</th>
-                <th className="p-2 border">Status</th>
+              <tr className="bg-slate-50 text-slate-600">
+                <th className="p-2 border-b border-slate-200 text-left">ID</th>
+                <th className="p-2 border-b border-slate-200 text-left">Customer</th>
+                <th className="p-2 border-b border-slate-200 text-left">Total</th>
+                <th className="p-2 border-b border-slate-200 text-left">Status</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={4} className="text-center p-2">Loading...</td></tr>
+                <tr>
+                  <td colSpan={4} className="text-center p-4 text-slate-500">Loading...</td>
+                </tr>
               ) : orders.length === 0 ? (
-                <tr><td colSpan={4} className="text-center p-2">No orders found.</td></tr>
+                <tr>
+                  <td colSpan={4} className="text-center p-4 text-slate-500">No orders found.</td>
+                </tr>
               ) : (
-                orders.map((order, idx) => (
-                  <tr key={order.id} className={
-                    order.status === "Enqueued"
-                      ? "bg-green-50 dark:bg-green-900"
-                      : order.status === "EnqueueFailed"
-                      ? "bg-red-50 dark:bg-red-900"
-                      : idx % 2 === 0
-                      ? "bg-white dark:bg-zinc-900"
-                      : "bg-zinc-50 dark:bg-zinc-800"
-                  }>
-                    <td className="p-2 border font-mono text-xs">{order.id}</td>
-                    <td className="p-2 border">{order.customerName}</td>
-                    <td className="p-2 border">{order.totalAmount}</td>
-                    <td className="p-2 border">{order.status ?? '-'}</td>
+                orders.map((order) => (
+                  <tr key={order.id} className="bg-white even:bg-slate-50/40">
+                    <td className="p-2 border-b border-slate-100 font-mono text-xs">{order.id}</td>
+                    <td className="p-2 border-b border-slate-100">{order.customerName}</td>
+                    <td className="p-2 border-b border-slate-100">{order.totalAmount}</td>
+                    <td className="p-2 border-b border-slate-100">{statusBadge(order.status)}</td>
                   </tr>
                 ))
               )}
             </tbody>
           </table>
         </div>
+
         <div className="flex justify-between items-center mt-4">
-          <span className="text-sm text-zinc-600">
-            Page {page} of {Math.max(1, Math.ceil(total / pageSize))} ({total} orders)
-          </span>
-          <div className="flex gap-2">
-            <button
-              className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 border border-blue-700"
-              onClick={() => setPage(p => Math.max(1, p - 1))}
-              disabled={page === 1}
-            >
-              Previous
-            </button>
-            <button
-              className="px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 border border-blue-700"
-              onClick={() => setPage(p => p + 1)}
-              disabled={page * pageSize >= total}
-            >
-              Next
-            </button>
-          </div>
+          <button
+            className="ds-btn-ghost"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1 || loading}
+          >
+            Previous
+          </button>
+          <button
+            className="ds-btn-primary"
+            onClick={() => setPage((p) => p + 1)}
+            disabled={page * pageSize >= total || loading}
+          >
+            Next
+          </button>
         </div>
       </div>
     </div>

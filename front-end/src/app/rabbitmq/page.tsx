@@ -124,208 +124,283 @@ export default function RabbitMQPage() {
   }
 
   return (
-    <section className="flex flex-col gap-8">
-      <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100">RabbitMQ Demo</h1>
-      <p className="text-zinc-700 dark:text-zinc-300 max-w-2xl">
-        This page provides simple didactic actions to interact with RabbitMQ queues and exchanges. Use the buttons below to trigger real examples and observe queue behavior.
-      </p>
+    <div className="ds-page flex flex-col gap-6">
 
-      {/* --- DLQ and Batch Queue Visualizer --- */}
-      <div className="bg-white dark:bg-zinc-900 rounded shadow p-6 border border-zinc-200 dark:border-zinc-800 mb-8">
-        <h2 className="text-lg font-bold mb-2 text-zinc-900 dark:text-zinc-100">DLQ & Batch Queue Visualizer</h2>
-        <div className="flex gap-4 flex-wrap mb-4">
-          <button
-            className="px-3 py-1 bg-purple-600 text-white rounded hover:bg-purple-700"
-            onClick={fetchDlqMessages}
-            disabled={dlqLoading}
-          >View DLQ (dlq_demo)</button>
-          <input
-            className="border px-2 py-1 rounded w-72"
-            placeholder="Batch queue name (e.g. batch_queue_...)"
-            value={selectedBatchQueue}
-            onChange={e => setSelectedBatchQueue(e.target.value)}
-            disabled={batchQueueLoading}
-          />
-          <button
-            className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
-            onClick={() => fetchBatchQueueMessages(selectedBatchQueue)}
-            disabled={batchQueueLoading || !selectedBatchQueue}
-          >View Batch Queue</button>
-        </div>
-        {/* DLQ Messages */}
-        {dlqLoading && <div className="text-zinc-500">Loading DLQ messages...</div>}
-        {dlqError && <div className="text-red-600">{dlqError}</div>}
-        {dlqMessages.length > 0 && (
-          <div className="mt-2">
-            <div className="font-semibold mb-1">DLQ Messages:</div>
-            <ul className="space-y-2">
-              {dlqMessages.map((msg, idx) => (
-                <li key={idx} className="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-800 p-2 rounded">
-                  <span className="flex-1 break-all">{msg}</span>
-                  <button className="px-2 py-1 bg-green-600 text-white rounded text-xs" onClick={() => handleAckNack('dlq_demo', msg, true)}>Ack</button>
-                  <button className="px-2 py-1 bg-red-600 text-white rounded text-xs" onClick={() => handleAckNack('dlq_demo', msg, false)}>Nack</button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-        {/* Batch Queue Messages */}
-        {batchQueueLoading && <div className="text-zinc-500">Loading batch queue messages...</div>}
-        {batchQueueError && <div className="text-red-600">{batchQueueError}</div>}
-        {batchQueueMessages.length > 0 && (
-          <div className="mt-2">
-            <div className="font-semibold mb-1">Batch Queue Messages ({selectedBatchQueue}):</div>
-            <ul className="space-y-2">
-              {batchQueueMessages.map((msg, idx) => (
-                <li key={idx} className="flex items-center gap-2 bg-zinc-100 dark:bg-zinc-800 p-2 rounded">
-                  <span className="flex-1 break-all">{msg}</span>
-                  <button className="px-2 py-1 bg-green-600 text-white rounded text-xs" onClick={() => handleAckNack(selectedBatchQueue, msg, true)}>Ack</button>
-                  <button className="px-2 py-1 bg-red-600 text-white rounded text-xs" onClick={() => handleAckNack(selectedBatchQueue, msg, false)}>Nack</button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-        {/* List of known batch queues */}
-        {batchQueues.length > 0 && (
-          <div className="mt-4 text-xs text-zinc-500">Known batch queues: {batchQueues.join(', ')}</div>
-        )}
+      {/* ── Header ── */}
+      <div className="flex flex-col gap-1">
+        <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
+          Message Broker · AMQP · Port 5672
+        </p>
+        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">RabbitMQ</h1>
+        <p className="ds-section-subtitle mt-1 max-w-2xl">
+          Explore exchanges, filas, DLQ, ack/nack, prioridade e TTL com exemplos ao vivo.
+          Cada ação envia mensagens reais para o broker — observe o resultado na
+          {' '}<a href="http://localhost:15672" target="_blank" rel="noopener noreferrer"
+            className="font-medium text-slate-700 underline underline-offset-2">Management UI ↗</a>.
+        </p>
       </div>
 
-      {/* --- Batch (Lote) RabbitMQ --- */}
-      <div className="bg-white dark:bg-zinc-900 rounded shadow p-6 border border-zinc-200 dark:border-zinc-800 mb-8">
-        <h2 className="text-lg font-bold mb-2 text-zinc-900 dark:text-zinc-100">Send batch to RabbitMQ</h2>
-        <form onSubmit={sendBatchRabbit} className="flex flex-col gap-2 max-w-xl">
-          <input
-            className="border px-2 py-1 rounded"
-            placeholder="Your e-mail"
-            value={batchUser}
-            onChange={e => setBatchUser(e.target.value)}
-            required
-            disabled={batchLoading}
-          />
-          <div className="flex gap-2">
-            <label className="text-sm flex items-center gap-1">
-              Exchange:
-              <select value={batchExchange} onChange={e => setBatchExchange(e.target.value)} className="border rounded px-1 py-0.5" disabled={batchLoading}>
-                <option value="direct">Direct</option>
-                <option value="topic">Topic</option>
-                <option value="fanout">Fanout</option>
-                <option value="headers">Headers</option>
-              </select>
-            </label>
-            <label className="text-sm flex items-center gap-1">
-              Priority:
-              <input type="number" min={0} max={10} value={batchPriority} onChange={e => setBatchPriority(Number(e.target.value))} className="border rounded px-1 py-0.5 w-16" disabled={batchLoading} />
-            </label>
-            <label className="text-sm flex items-center gap-1">
-              TTL(ms):
-              <input type="number" min={0} value={batchTtl} onChange={e => setBatchTtl(Number(e.target.value))} className="border rounded px-1 py-0.5 w-24" disabled={batchLoading} />
-            </label>
+      {/* ── Concept pills ── */}
+      <div className="flex flex-wrap gap-2">
+        {['Exchange', 'Queue', 'Routing Key', 'Binding', 'DLQ', 'Ack / Nack', 'TTL', 'Priority'].map(c => (
+          <span key={c} className="ds-badge">{c}</span>
+        ))}
+      </div>
+
+      {/* ── Grid: Ações Didáticas + Batch Form ── */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+
+        {/* ── Ações Didáticas ── */}
+        <div className="ds-panel border-t-4 border-t-orange-400 flex flex-col gap-4">
+          <div>
+            <button
+              className="flex w-full items-center justify-between"
+              onClick={() => setDidacticOpen((v) => !v)}
+              aria-expanded={didacticOpen}
+            >
+              <p className="ds-section-title">⚡ Ações Didáticas</p>
+              <span className="ds-text-muted">{didacticOpen ? '▲' : '▼'}</span>
+            </button>
+            <p className="ds-section-subtitle mt-1">
+              Dispare cenários isolados para entender cada conceito do RabbitMQ.
+            </p>
           </div>
-          {batchMessages.map((text, idx) => (
-            <div key={idx} className="flex gap-2 items-center">
-              <textarea
-                className="border px-2 py-1 rounded w-full"
-                placeholder={`Message #${idx + 1}`}
-                value={text}
-                onChange={e => {
-                  const updated = [...batchMessages];
-                  updated[idx] = e.target.value;
-                  setBatchMessages(updated);
-                }}
-                required={idx === 0}
+
+          {didacticOpen && (
+            <div className="flex flex-col gap-2">
+              {[
+                { label: 'Direct Exchange', hint: 'Roteia pelo routing key exato', action: "send-exchange", payload: { action: "send-exchange", payload: { exchange: "direct_demo", type: "direct", routingKey: "key1", message: "Direct exchange message" } } },
+                { label: 'Setup DLQ', hint: 'Configura Dead Letter Queue para mensagens rejeitadas', action: "send-dlq", payload: { action: "send-dlq", payload: { message: "DLQ message" } } },
+                { label: 'Priority 5', hint: 'Mensagem com prioridade 5 (0–10)', action: "send-priority", payload: { action: "send-priority", payload: { message: "Priority message", priority: 5 } } },
+                { label: 'TTL 5s', hint: 'Mensagem expira em 5 000 ms se não consumida', action: "send-ttl", payload: { action: "send-ttl", payload: { message: "TTL message", ttl: 5000 } } },
+                { label: 'Enfileirar Ack/Nack', hint: 'Publica mensagem na fila de ack/nack demo', action: "ack-nack-demo", payload: { action: "ack-nack-demo", payload: { message: `Ack/Nack message ${Date.now()}` } } },
+                { label: 'Consumir → Ack ✓', hint: 'Consome próxima mensagem e confirma entrega', action: "consume-ack", payload: { action: "consume-ack-nack", payload: { ack: true } } },
+                { label: 'Consumir → Nack ✗', hint: 'Consome próxima mensagem e rejeita (re-enfileira)', action: "consume-nack", payload: { action: "consume-ack-nack", payload: { ack: false } } },
+              ].map(({ label, hint, action, payload }) => (
+                <div key={action} className="ds-list-item flex flex-col gap-0.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-sm font-semibold text-slate-800">{label}</span>
+                    <button
+                      className="ds-btn-primary py-1 text-xs shrink-0"
+                      onClick={() => handleSend(action, payload)}
+                      disabled={loading}
+                    >
+                      {loading ? '…' : 'Executar'}
+                    </button>
+                  </div>
+                  <span className="ds-text-muted">{hint}</span>
+                </div>
+              ))}
+
+              {/* Simulate consumers — separated */}
+              <div className="ds-list-item flex flex-col gap-0.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-semibold text-slate-800">3 Consumers Simultâneos</span>
+                  <button
+                    className="ds-btn-primary py-1 text-xs shrink-0"
+                    onClick={() => handleSend("simulate-consumers", { action: "simulate-consumers", payload: { queue: "rabbitmq-queue", consumers: 3 } })}
+                    disabled={loading}
+                  >
+                    {loading ? '…' : 'Executar'}
+                  </button>
+                </div>
+                <span className="ds-text-muted">Simula 3 consumers concorrentes processando a mesma fila</span>
+              </div>
+            </div>
+          )}
+
+          {result && (
+            <div className="ds-feedback-success">{result}</div>
+          )}
+        </div>
+
+        {/* ── Envio em Lote ── */}
+        <div className="ds-panel border-t-4 border-t-orange-400 flex flex-col gap-4">
+          <div>
+            <p className="ds-section-title">📦 Envio em Lote</p>
+            <p className="ds-section-subtitle mt-1">
+              Publica múltiplas mensagens de uma vez com controle de exchange, prioridade e TTL.
+            </p>
+          </div>
+
+          <form onSubmit={sendBatchRabbit} className="flex flex-col gap-3">
+            <div>
+              <label className="ds-label">Identificador (e-mail)</label>
+              <input
+                className="ds-input"
+                placeholder="seu@email.com"
+                value={batchUser}
+                onChange={e => setBatchUser(e.target.value)}
+                required
                 disabled={batchLoading}
-                rows={2}
               />
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <label className="ds-label">Exchange</label>
+                <select
+                  className="ds-select"
+                  value={batchExchange}
+                  onChange={e => setBatchExchange(e.target.value)}
+                  disabled={batchLoading}
+                >
+                  <option value="direct">Direct</option>
+                  <option value="topic">Topic</option>
+                  <option value="fanout">Fanout</option>
+                  <option value="headers">Headers</option>
+                </select>
+              </div>
+              <div>
+                <label className="ds-label">Prioridade (0–10)</label>
+                <input
+                  type="number"
+                  min={0}
+                  max={10}
+                  className="ds-input"
+                  value={batchPriority}
+                  onChange={e => setBatchPriority(Number(e.target.value))}
+                  disabled={batchLoading}
+                />
+              </div>
+              <div>
+                <label className="ds-label">TTL (ms)</label>
+                <input
+                  type="number"
+                  min={0}
+                  className="ds-input"
+                  value={batchTtl}
+                  onChange={e => setBatchTtl(Number(e.target.value))}
+                  disabled={batchLoading}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="ds-label">Mensagens</label>
+              {batchMessages.map((text, idx) => (
+                <div key={idx} className="flex gap-2 items-start">
+                  <textarea
+                    className="ds-input resize-none"
+                    placeholder={`Mensagem #${idx + 1}`}
+                    value={text}
+                    onChange={e => {
+                      const updated = [...batchMessages];
+                      updated[idx] = e.target.value;
+                      setBatchMessages(updated);
+                    }}
+                    required={idx === 0}
+                    disabled={batchLoading}
+                    rows={2}
+                  />
+                  <button
+                    type="button"
+                    className="ds-btn-ghost mt-1 px-2 py-1"
+                    onClick={() => setBatchMessages(batchMessages.length === 1 ? [""] : batchMessages.filter((_, i) => i !== idx))}
+                    disabled={batchLoading || batchMessages.length === 1}
+                    title="Remover"
+                  >✕</button>
+                </div>
+              ))}
               <button
                 type="button"
-                className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-700 text-xs"
-                onClick={() => setBatchMessages(batchMessages.length === 1 ? [""] : batchMessages.filter((_, i) => i !== idx))}
-                disabled={batchLoading || batchMessages.length === 1}
-              >-</button>
+                className="ds-btn-ghost w-fit"
+                onClick={() => setBatchMessages([...batchMessages, ""])}
+                disabled={batchLoading}
+              >+ Adicionar mensagem</button>
             </div>
-          ))}
-          <button
-            type="button"
-            className="px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-700 text-xs w-fit"
-            onClick={() => setBatchMessages([...batchMessages, ""])}
-            disabled={batchLoading}
-          >Add message</button>
-          <button
-            type="submit"
-            className="px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 w-fit"
-            disabled={batchLoading}
-          >Send batch</button>
-        </form>
-        {batchMsg && <div className="mt-2 text-green-700 dark:text-green-400">{batchMsg}</div>}
-        <div className="text-zinc-500 text-xs mt-2">
-          The user will be notified (simulated) at the start and end of batch processing.
+
+            <button type="submit" className="ds-btn-primary w-fit" disabled={batchLoading}>
+              {batchLoading ? 'Enviando…' : '▶ Enviar lote'}
+            </button>
+          </form>
+
+          {batchMsg && <div className="ds-feedback-success">{batchMsg}</div>}
+          <p className="ds-text-muted">O usuário será notificado (simulado) no início e fim do processamento.</p>
+
+          {/* Known batch queues */}
+          {batchQueues.length > 0 && (
+            <div className="border-t border-slate-100 pt-3 flex flex-wrap gap-1">
+              <span className="ds-text-muted mr-1">Filas criadas:</span>
+              {batchQueues.map(q => (
+                <span key={q} className="ds-badge">{q}</span>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      {/* --- Didactic Actions (Collapsible) --- */}
-      <div className="bg-white dark:bg-zinc-900 rounded shadow p-6 border border-zinc-200 dark:border-zinc-800">
-        <button
-          className="flex items-center gap-2 mb-2 text-zinc-900 dark:text-zinc-100 font-bold text-lg focus:outline-none"
-          onClick={() => setDidacticOpen((v) => !v)}
-          aria-expanded={didacticOpen}
-        >
-          <span>{didacticOpen ? '▼' : '▶'}</span> Didactic Actions
-        </button>
-        {didacticOpen && (
-          <>
-            <div className="flex flex-col gap-2">
-              <button
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 w-fit"
-                onClick={() => handleSend("send-exchange", { action: "send-exchange", payload: { exchange: "direct_demo", type: "direct", routingKey: "key1", message: "Direct exchange message" } })}
-                disabled={loading}
-              >Send to direct exchange</button>
-              <button
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 w-fit"
-                onClick={() => handleSend("send-dlq", { action: "send-dlq", payload: { message: "DLQ message" } })}
-                disabled={loading}
-              >Setup DLQ</button>
-              <button
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 w-fit"
-                onClick={() => handleSend("send-priority", { action: "send-priority", payload: { message: "Priority message", priority: 5 } })}
-                disabled={loading}
-              >Send with priority 5</button>
-              <button
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 w-fit"
-                onClick={() => handleSend("send-ttl", { action: "send-ttl", payload: { message: "TTL message", ttl: 5000 } })}
-                disabled={loading}
-              >Send with TTL 5s</button>
-              <button
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 w-fit"
-                onClick={() => handleSend("ack-nack-demo", { action: "ack-nack-demo", payload: { message: `Ack/Nack message ${Date.now()}` } })}
-                disabled={loading}
-              >Send to Ack/Nack queue</button>
-              <button
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 w-fit"
-                onClick={() => handleSend("consume-ack", { action: "consume-ack-nack", payload: { ack: true } })}
-                disabled={loading}
-              >Consume and Ack</button>
-              <button
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 w-fit"
-                onClick={() => handleSend("consume-nack", { action: "consume-ack-nack", payload: { ack: false } })}
-                disabled={loading}
-              >Consume and Nack</button>
-              <button
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 w-fit"
-                onClick={() => handleSend("simulate-consumers", { action: "simulate-consumers", payload: { queue: "rabbitmq-queue", consumers: 3 } })}
-                disabled={loading}
-              >Simulate 3 concurrent consumers</button>
-            </div>
-            {result && (
-              <div className="text-green-700 dark:text-green-400 font-semibold mt-4">{result}</div>
-            )}
-          </>
+      {/* ── DLQ & Batch Queue Visualizer ── */}
+      <div className="ds-panel border-t-4 border-t-rose-400 flex flex-col gap-4">
+        <div className="flex flex-col gap-1">
+          <p className="ds-section-title">🔍 Visualizador de Filas</p>
+          <p className="ds-section-subtitle">
+            Inspecione mensagens na DLQ ou em qualquer fila de lote. Use Ack para confirmar e Nack para rejeitar.
+          </p>
+        </div>
+
+        <div className="flex flex-wrap gap-3 items-end">
+          <div className="flex flex-col gap-1">
+            <label className="ds-label">Fila de Lote</label>
+            <input
+              className="ds-input w-72"
+              placeholder="batch_queue_..."
+              value={selectedBatchQueue}
+              onChange={e => setSelectedBatchQueue(e.target.value)}
+              disabled={batchQueueLoading}
+            />
+          </div>
+          <button
+            className="ds-btn-primary"
+            onClick={() => fetchBatchQueueMessages(selectedBatchQueue)}
+            disabled={batchQueueLoading || !selectedBatchQueue}
+          >
+            {batchQueueLoading ? 'Buscando…' : 'Ver fila'}
+          </button>
+          <button
+            className="ds-btn-ghost"
+            onClick={fetchDlqMessages}
+            disabled={dlqLoading}
+          >
+            {dlqLoading ? 'Buscando…' : '💀 Ver DLQ (dlq_demo)'}
+          </button>
+        </div>
+
+        {/* DLQ Messages */}
+        {dlqError && <div className="ds-feedback-error">{dlqError}</div>}
+        {dlqMessages.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <p className="ds-section-subtitle font-semibold">DLQ — {dlqMessages.length} mensagem(s)</p>
+            {dlqMessages.map((msg, idx) => (
+              <div key={idx} className="ds-list-item flex items-center gap-2">
+                <span className="flex-1 break-all font-mono text-xs text-slate-700">{msg}</span>
+                <button className="ds-btn-ghost text-emerald-700 border-emerald-300 hover:bg-emerald-50" onClick={() => handleAckNack('dlq_demo', msg, true)}>Ack</button>
+                <button className="ds-btn-ghost text-rose-700 border-rose-300 hover:bg-rose-50" onClick={() => handleAckNack('dlq_demo', msg, false)}>Nack</button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Batch Queue Messages */}
+        {batchQueueError && <div className="ds-feedback-error">{batchQueueError}</div>}
+        {batchQueueMessages.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <p className="ds-section-subtitle font-semibold">{selectedBatchQueue} — {batchQueueMessages.length} mensagem(s)</p>
+            {batchQueueMessages.map((msg, idx) => (
+              <div key={idx} className="ds-list-item flex items-center gap-2">
+                <span className="flex-1 break-all font-mono text-xs text-slate-700">{msg}</span>
+                <button className="ds-btn-ghost text-emerald-700 border-emerald-300 hover:bg-emerald-50" onClick={() => handleAckNack(selectedBatchQueue, msg, true)}>Ack</button>
+                <button className="ds-btn-ghost text-rose-700 border-rose-300 hover:bg-rose-50" onClick={() => handleAckNack(selectedBatchQueue, msg, false)}>Nack</button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {dlqMessages.length === 0 && batchQueueMessages.length === 0 && !dlqLoading && !batchQueueLoading && (
+          <div className="ds-panel-empty text-center">Nenhuma mensagem carregada. Use os botões acima para inspecionar uma fila.</div>
         )}
       </div>
-      <div className="mt-8 text-zinc-500 text-sm">
-        See the code and documentation for details on each flow and adapt for your studies.
-      </div>
-    </section>
+
+    </div>
   );
 }
