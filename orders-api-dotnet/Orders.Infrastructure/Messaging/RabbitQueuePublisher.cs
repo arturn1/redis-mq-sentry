@@ -5,12 +5,12 @@ using Orders.Domain.Entities;
 
 namespace Orders.Infrastructure.Messaging;
 
-public class RedisFastQueuePublisher : IFastQueuePublisher
+public class RabbitQueuePublisher : IRabbitQueuePublisher
 {
     private readonly HttpClient _httpClient;
-    private readonly BullBoardOptions _options;
+    private readonly RabbitMqOptions _options;
 
-    public RedisFastQueuePublisher(HttpClient httpClient, IOptions<BullBoardOptions> options)
+    public RabbitQueuePublisher(HttpClient httpClient, IOptions<RabbitMqOptions> options)
     {
         _httpClient = httpClient;
         _options = options.Value;
@@ -18,12 +18,15 @@ public class RedisFastQueuePublisher : IFastQueuePublisher
 
     public async Task PublishAsync(Order order, CancellationToken cancellationToken)
     {
-        var endpoint = $"{_options.BaseUrl.TrimEnd('/')}/api/redis-orders/send/orders";
+        var endpoint = $"{_options.ApiUrl.TrimEnd('/')}/api/rabbit/send/orders";
         var payload = new
         {
-            order
+            Id = order.Id,
+            CustomerName = order.CustomerName,
+            TotalAmount = order.TotalAmount,
+            Status = order.Status.ToString(),
+            CreatedAtUtc = order.CreatedAtUtc
         };
-
         using var response = await _httpClient.PostAsJsonAsync(endpoint, payload, cancellationToken);
         response.EnsureSuccessStatusCode();
     }

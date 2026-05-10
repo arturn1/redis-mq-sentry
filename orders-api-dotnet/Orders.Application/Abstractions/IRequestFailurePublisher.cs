@@ -18,8 +18,4 @@ public record PostFailurePayload(
     string StackTrace,
     DateTime OccurredAtUtc);
 
-public interface IRequestFailurePublisher
-{
-    Task PublishGetFailureAsync(GetFailurePayload payload, CancellationToken cancellationToken);
-    Task PublishPostFailureAsync(PostFailurePayload payload, CancellationToken cancellationToken);
-}
+

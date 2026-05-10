@@ -1,52 +1,55 @@
+
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 
 const API_URL = process.env.BACKEND_URL || 'http://bull-board-app:4000';
 
-// List all orders
-export async function GET(req: NextRequest) {
+// Central handler for all Redis order actions
+export async function GET() {
+  // Lista todos os pedidos
   const res = await fetch(`${API_URL}/api/redis-orders`);
   const data = await res.json();
-  return NextResponse.json(data);
+  // Backend retorna { orders: [...] }
+  return NextResponse.json({ orders: data.orders });
 }
 
-// Create new order or batch
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  // Batch: pedidos (array) + usuario
-  if (Array.isArray(body.pedidos) && body.usuario) {
-    const res = await fetch(`${API_URL}/api/redis-queue/send-lote`, {
+  // Lote: orders (array) + user
+  if (Array.isArray(body.orders) && body.user) {
+    // Alinha com /api/redis-orders/send-batch
+    const res = await fetch(`${API_URL}/api/redis-orders/send-batch`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ orders: body.orders, user: body.user }),
     });
     const data = await res.json();
     return NextResponse.json(data);
   }
-  // Single order
-  const res = await fetch(`${API_URL}/api/redis-orders`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  const data = await res.json();
-  return NextResponse.json(data);
+  // Pedido único
+  if (body.value) {
+    const res = await fetch(`${API_URL}/api/redis-orders`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ value: body.value }),
+    });
+    const data = await res.json();
+    return NextResponse.json(data);
+  }
+  return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
 }
 
-// Process order (POST /api/redis-orders/process/[id])
 export async function PUT(req: NextRequest) {
   const { id, action } = await req.json();
   if (action === 'process') {
     const res = await fetch(`${API_URL}/api/redis-orders/process/${id}`, {
-      method: 'POST',
-    });
+      method: 'POST' });
     const data = await res.json();
     return NextResponse.json(data);
   }
   if (action === 'remove') {
     const res = await fetch(`${API_URL}/api/redis-orders/${id}`, {
-      method: 'DELETE',
-    });
+      method: 'DELETE' });
     const data = await res.json();
     return NextResponse.json(data);
   }

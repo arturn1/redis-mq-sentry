@@ -88,6 +88,14 @@
         environment:
           - ASPNETCORE_ENVIRONMENT=Development
           - BullBoard__BaseUrl=http://bull-board-app:4000
+          - RabbitMq__ApiUrl=http://bull-board-app:4000
+          - RabbitMq__ConnectionString=amqp://guest:guest@rabbitmq:5672
+          - RabbitMq__HostName=rabbitmq
+          - RabbitMq__Port=5672
+          - RabbitMq__UserName=guest
+          - RabbitMq__Password=guest
+          - RabbitMq__VirtualHost=/
+          - RabbitMq__ManagementUrl=http://rabbitmq:15672
         depends_on:
           - bull-board-app
 
@@ -185,12 +193,12 @@
         command: ["run", "--address", "0.0.0.0:6565", "--paused", "/scripts/orders-load.js"]
         depends_on:
           - orders-api-dotnet
-      consumer-redis-fast:
-        build: ./consumer-redis-fast
+      consumer-redis-orders:
+        build: ./consumer-redis-orders
         depends_on:
           - redis
-      consumer-redis-slow:
-        build: ./consumer-redis-slow
+      consumer-redis-batch-orders:
+        build: ./consumer-redis-batch-orders
         depends_on:
           - redis
       consumer-rabbitmq:

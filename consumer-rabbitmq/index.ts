@@ -4,40 +4,13 @@
 
 import amqp, { ConsumeMessage } from 'amqplib';
 import Bull from 'bull';
-import client from 'prom-client';
-import http from 'http';
 
-const QUEUE_NAME = 'dlq_demo';
+import { messagesProcessed, messageDuration, messagesActive, register, startMetricsServer } from './src/metrics';
+import { saveOrder } from './src/db';
 
-const register = new client.Registry();
-client.collectDefaultMetrics({ register });
+const QUEUE_NAME = 'orders_queue';
 
-const messagesProcessed = new client.Counter({
-  name: 'consumer_messages_processed_total',
-  help: 'Total de mensagens RabbitMQ processadas',
-  labelNames: ['queue', 'status'],
-  registers: [register],
-});
-
-const messageDuration = new client.Histogram({
-  name: 'consumer_message_duration_seconds',
-  help: 'Duração do processamento de cada mensagem em segundos',
-  labelNames: ['queue'],
-  buckets: [0.1, 0.5, 1, 2, 5, 10, 30],
-  registers: [register],
-});
-
-const messagesActive = new client.Gauge({
-  name: 'consumer_messages_active',
-  help: 'Mensagens em processamento no momento',
-  labelNames: ['queue'],
-  registers: [register],
-});
-
-http.createServer(async (_req, res) => {
-  res.setHeader('Content-Type', register.contentType);
-  res.end(await register.metrics());
-}).listen(9100, () => console.log('Metrics em :9100/metrics'));
+startMetricsServer(9100);
 
 const emailQueue = new Bull('email', { redis: { host: 'redis', port: 6379 } });
 
@@ -45,25 +18,25 @@ async function start() {
 
   const conn = await amqp.connect('amqp://rabbitmq');
   const ch = await conn.createChannel();
-  await ch.assertQueue('dlq_demo', { durable: true });
-  console.log('Consumer RabbitMQ aguardando mensagens...');
-  ch.consume('dlq_demo', async (msg: ConsumeMessage | null) => {
+  await ch.assertQueue(QUEUE_NAME, { durable: true });
+  console.log('Consumer RabbitMQ: waiting for messages...');
+  ch.consume(QUEUE_NAME, async (msg: ConsumeMessage | null) => {
     if (msg) {
       const content = msg.content.toString();
-      console.log('Consumer RabbitMQ: processando', content);
+      console.log('Consumer RabbitMQ: processing', content);
       const end = messageDuration.startTimer({ queue: QUEUE_NAME });
       messagesActive.inc({ queue: QUEUE_NAME });
       try {
-        await emailQueue.add({ tipo: 'email-DLQ', content });
-        // Simula processamento
-        await new Promise((resolve) => setTimeout(resolve, 5000));
+        // Parse order from message (assume JSON)
+        const order = JSON.parse(content);
+        await saveOrder(order);
         ch.ack(msg);
         messagesProcessed.inc({ queue: QUEUE_NAME, status: 'success' });
-        console.log('Consumer RabbitMQ: finalizado', content);
+        console.log('Consumer RabbitMQ: finished', content);
       } catch (err) {
         ch.nack(msg, false, false);
         messagesProcessed.inc({ queue: QUEUE_NAME, status: 'error' });
-        console.error('Consumer RabbitMQ: erro ao processar', err);
+        console.error('Consumer RabbitMQ: Error processing', err);
       } finally {
         end();
         messagesActive.dec({ queue: QUEUE_NAME });

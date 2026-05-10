@@ -22,11 +22,13 @@ public static class DependencyInjection
 
         services.AddHttpClient<RedisSlowQueuePublisher>();
         services.AddHttpClient<RedisFastQueuePublisher>();
+        services.AddHttpClient<RabbitQueuePublisher>();
+
 
         services.AddScoped<IOrderRepository, OrderRepository>();
         services.AddScoped<ISlowQueuePublisher, RedisSlowQueuePublisher>();
         services.AddScoped<IFastQueuePublisher, RedisFastQueuePublisher>();
-        services.AddScoped<IRequestFailurePublisher, RabbitRequestFailurePublisher>();
+        services.AddScoped<IRabbitQueuePublisher, RabbitQueuePublisher>();
         services.AddScoped<IOrderService, OrderService>();
 
         return services;

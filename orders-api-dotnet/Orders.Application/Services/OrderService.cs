@@ -4,21 +4,24 @@ using Orders.Domain.Entities;
 
 namespace Orders.Application.Services;
 
+
 public class OrderService : IOrderService
 {
     private readonly IOrderRepository _orderRepository;
-    private readonly ISlowQueuePublisher _slowQueuePublisher;
     private readonly IFastQueuePublisher _fastQueuePublisher;
+    private readonly IRabbitQueuePublisher _rabbitQueuePublisher;
 
     public OrderService(
         IOrderRepository orderRepository,
         ISlowQueuePublisher slowQueuePublisher,
-        IFastQueuePublisher fastQueuePublisher)
+        IFastQueuePublisher fastQueuePublisher,
+        IRabbitQueuePublisher rabbitQueuePublisher)
     {
         _orderRepository = orderRepository;
-        _slowQueuePublisher = slowQueuePublisher;
         _fastQueuePublisher = fastQueuePublisher;
+        _rabbitQueuePublisher = rabbitQueuePublisher;
     }
+
 
     public async Task<OrderResponse> CreateAsync(CreateOrderRequest request, CancellationToken cancellationToken)
     {
@@ -31,17 +34,28 @@ public class OrderService : IOrderService
             Status = OrderStatus.Created
         };
 
-
+        bool published = false;
         try
         {
-            await _orderRepository.AddAsync(order, cancellationToken);
-            await _slowQueuePublisher.PublishAsync(order, cancellationToken);
+            await _fastQueuePublisher.PublishAsync(order, cancellationToken);
             order.Status = OrderStatus.Enqueued;
+            published = true;
         }
-        catch
+        catch (Exception ex)
         {
-            order.Status = OrderStatus.EnqueueFailed;
-            throw;
+            // Log warning: Redis indisponível, fallback para RabbitMQ
+            try
+            {
+                await _rabbitQueuePublisher.PublishAsync(order, cancellationToken);
+                order.Status = OrderStatus.EnqueuedFallbackRabbit;
+                published = true;
+            }
+            catch (Exception rabbitEx)
+            {
+                order.Status = OrderStatus.EnqueueFailed;
+                // Log error: Falha em ambos Redis e RabbitMQ
+                throw new Exception("Falha ao enfileirar no Redis e RabbitMQ", new AggregateException(ex, rabbitEx));
+            }
         }
         finally
         {
@@ -65,28 +79,7 @@ public class OrderService : IOrderService
     {
         var (orders, total) = await _orderRepository.ListPagedAsync(page, pageSize, cancellationToken);
 
-        PublishFastQueueInBackground(orders.FirstOrDefault());
-
         return (orders.OrderByDescending(x => x.CreatedAtUtc).Select(ToResponse).ToList(), total);
-    }
-
-    private void PublishFastQueueInBackground(Order order)
-    {
-        if (order == null) _ = PublishFastQueueNoThrowAsync(new Order{ TotalAmount = 0, CustomerName = "N/A" });
-        else
-        _ = PublishFastQueueNoThrowAsync(order);
-    }
-
-    private async Task PublishFastQueueNoThrowAsync(Order order)
-    {
-        try
-        {
-            await _fastQueuePublisher.PublishAsync(order, CancellationToken.None);
-        }
-        catch
-        {
-            // No fluxo de listagem, falha no redis-fast nao deve bloquear resposta HTTP.
-        }
     }
 
     private static OrderResponse ToResponse(Order order) =>

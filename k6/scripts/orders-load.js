@@ -25,16 +25,16 @@ export const options = {
     //   ],
     //   gracefulRampDown: '20s'
     // },
-    list_orders: {
-      executor: 'constant-vus',
-      exec: 'listOrdersScenario',
-      vus: 1000,
-      duration: '1m'
-    },
+    // list_orders: {
+    //   executor: 'constant-vus',
+    //   exec: 'listOrdersScenario',
+    //   vus: 1000,
+    //   duration: '1m'
+    // },
     create_orders: {
       executor: 'constant-vus',
       exec: 'createOrderScenario',
-      vus: 1000,
+      vus: 1,
       duration: '1m'
     }
   },
@@ -71,7 +71,7 @@ export function createOrderScenario() {
     createOrderErrors.add(1);
   }
 
-  sleep(0.5);
+  sleep(1.5);
 }
 
 export function listOrdersScenario() {

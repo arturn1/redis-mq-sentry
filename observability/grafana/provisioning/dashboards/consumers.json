@@ -2,7 +2,7 @@
   "__inputs": [],
   "__requires": [],
   "annotations": { "list": [] },
-  "description": "Métricas de todos os consumers (redis-fast, redis-slow, rabbitmq)",
+  "description": "Métricas de todos os consumers (redis-orders, redis-batch-orders, rabbitmq)",
   "editable": true,
   "graphTooltip": 1,
   "id": null,
@@ -34,13 +34,13 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum by (job) (rate(consumer_jobs_processed_total{status=\"success\"}[1m]))",
+          "expr": "sum by (job) (rate(consumer_jobs_processed_total{status=\"success\",job=~\"$job\"}[1m]))",
           "legendFormat": "{{job}} — sucesso",
           "refId": "A"
         },
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum by (job) (rate(consumer_messages_processed_total{status=\"success\"}[1m]))",
+          "expr": "sum by (job) (rate(consumer_messages_processed_total{status=\"success\",job=~\"$job\"}[1m]))",
           "legendFormat": "{{job}} — sucesso",
           "refId": "B"
         }
@@ -72,13 +72,13 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum by (job) (rate(consumer_jobs_processed_total{status=\"error\"}[1m]))",
+          "expr": "sum by (job) (rate(consumer_jobs_processed_total{status=\"error\",job=~\"$job\"}[1m]))",
           "legendFormat": "{{job}} — erro",
           "refId": "A"
         },
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum by (job) (rate(consumer_messages_processed_total{status=\"error\"}[1m]))",
+          "expr": "sum by (job) (rate(consumer_messages_processed_total{status=\"error\",job=~\"$job\"}[1m]))",
           "legendFormat": "{{job}} — erro",
           "refId": "B"
         }
@@ -109,12 +109,12 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(increase(consumer_jobs_processed_total{job=\"consumer-redis-fast\", status=\"success\"}[5m]))",
-          "legendFormat": "redis-fast",
+          "expr": "sum(increase(consumer_jobs_processed_total{job=~\"consumer-redis-orders\", status=\"success\"}[5m]))",
+          "legendFormat": "redis-orders",
           "refId": "A"
         }
       ],
-      "title": "redis-fast — Sucesso (últimos 5m)",
+      "title": "redis-orders — Sucesso (últimos 5m)",
       "type": "stat"
     },
     {
@@ -133,12 +133,12 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(increase(consumer_jobs_processed_total{job=\"consumer-redis-fast\", status=\"error\"}[5m])) or vector(0)",
-          "legendFormat": "redis-fast",
+          "expr": "sum(increase(consumer_jobs_processed_total{job=~\"consumer-redis-orders\", status=\"error\"}[5m])) or vector(0)",
+          "legendFormat": "redis-orders",
           "refId": "A"
         }
       ],
-      "title": "redis-fast — Erros (últimos 5m)",
+      "title": "redis-orders — Erros (últimos 5m)",
       "type": "stat"
     },
     {
@@ -157,12 +157,12 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(increase(consumer_jobs_processed_total{job=\"consumer-redis-slow\", status=\"success\"}[5m]))",
-          "legendFormat": "redis-slow",
+          "expr": "sum(increase(consumer_jobs_processed_total{job=~\"consumer-redis-batch-orders\", status=\"success\"}[5m]))",
+          "legendFormat": "redis-batch-orders",
           "refId": "A"
         }
       ],
-      "title": "redis-slow — Sucesso (últimos 5m)",
+      "title": "redis-batch-orders — Sucesso (últimos 5m)",
       "type": "stat"
     },
     {
@@ -181,12 +181,12 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(increase(consumer_jobs_processed_total{job=\"consumer-redis-slow\", status=\"error\"}[5m])) or vector(0)",
-          "legendFormat": "redis-slow",
+          "expr": "sum(increase(consumer_jobs_processed_total{job=~\"consumer-redis-batch-orders\", status=\"error\"}[5m])) or vector(0)",
+          "legendFormat": "redis-batch-orders",
           "refId": "A"
         }
       ],
-      "title": "redis-slow — Erros (últimos 5m)",
+      "title": "redis-batch-orders — Erros (últimos 5m)",
       "type": "stat"
     },
     {
@@ -199,7 +199,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 14 },
+      "gridPos": { "h": 4, "w": 12, "x": 0, "y": 14 },
       "id": 7,
       "options": { "colorMode": "background", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } },
       "targets": [
@@ -223,7 +223,7 @@
         },
         "overrides": []
       },
-      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 14 },
+      "gridPos": { "h": 4, "w": 12, "x": 12, "y": 14 },
       "id": 8,
       "options": { "colorMode": "background", "graphMode": "area", "reduceOptions": { "calcs": ["lastNotNull"] } },
       "targets": [
@@ -263,19 +263,19 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "histogram_quantile(0.50, sum by (job, le) (rate(consumer_job_duration_seconds_bucket[2m])))",
+          "expr": "histogram_quantile(0.50, sum by (job, le) (rate(consumer_job_duration_seconds_bucket{job=~\"$job\"}[2m])))",
           "legendFormat": "p50 {{job}}",
           "refId": "A"
         },
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "histogram_quantile(0.95, sum by (job, le) (rate(consumer_job_duration_seconds_bucket[2m])))",
+          "expr": "histogram_quantile(0.95, sum by (job, le) (rate(consumer_job_duration_seconds_bucket{job=~\"$job\"}[2m])))",
           "legendFormat": "p95 {{job}}",
           "refId": "B"
         },
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "histogram_quantile(0.99, sum by (job, le) (rate(consumer_job_duration_seconds_bucket[2m])))",
+          "expr": "histogram_quantile(0.99, sum by (job, le) (rate(consumer_job_duration_seconds_bucket{job=~\"$job\"}[2m])))",
           "legendFormat": "p99 {{job}}",
           "refId": "C"
         }
@@ -302,13 +302,13 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "histogram_quantile(0.50, sum by (job, le) (rate(consumer_message_duration_seconds_bucket[2m])))",
+          "expr": "histogram_quantile(0.50, sum by (job, le) (rate(consumer_message_duration_seconds_bucket{job=~\"$job\"}[2m])))",
           "legendFormat": "p50 {{job}}",
           "refId": "A"
         },
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "histogram_quantile(0.95, sum by (job, le) (rate(consumer_message_duration_seconds_bucket[2m])))",
+          "expr": "histogram_quantile(0.95, sum by (job, le) (rate(consumer_message_duration_seconds_bucket{job=~\"$job\"}[2m])))",
           "legendFormat": "p95 {{job}}",
           "refId": "B"
         }
@@ -342,13 +342,13 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "consumer_jobs_active",
+          "expr": "consumer_jobs_active{job=~\"$job\"}",
           "legendFormat": "{{job}}",
           "refId": "A"
         },
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "consumer_messages_active",
+          "expr": "consumer_messages_active{job=~\"$job\"}",
           "legendFormat": "{{job}}",
           "refId": "B"
         }
@@ -382,7 +382,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "nodejs_heap_size_used_bytes{job=~\"consumer-.*\"}",
+          "expr": "nodejs_heap_size_used_bytes{job=~\"$job\"}",
           "legendFormat": "{{job}}",
           "refId": "A"
         }
@@ -409,7 +409,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "nodejs_eventloop_lag_seconds{job=~\"consumer-.*\"}",
+          "expr": "nodejs_eventloop_lag_seconds{job=~\"$job\"}",
           "legendFormat": "{{job}}",
           "refId": "A"
         }
@@ -420,7 +420,26 @@
   ],
   "schemaVersion": 38,
   "tags": ["consumers", "redis", "rabbitmq", "queue"],
-  "templating": { "list": [] },
+  "templating": {
+    "list": [
+      {
+        "name": "job",
+        "type": "query",
+        "datasource": { "type": "prometheus", "uid": "prometheus" },
+        "query": "label_values(up{job=~\"consumer-.*\"}, job)",
+        "refresh": 1,
+        "includeAll": true,
+        "multi": true,
+        "allValue": "consumer-.*",
+        "sort": 1,
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        }
+      }
+    ]
+  },
   "time": { "from": "now-30m", "to": "now" },
   "timepicker": {},
   "timezone": "browser",

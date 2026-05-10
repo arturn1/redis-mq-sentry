@@ -13,7 +13,7 @@
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
       "id": 100,
-      "title": "Requisições HTTP (janela PromQL: 1m)",
+      "title": "Requisições HTTP",
       "type": "row"
     },
     {
@@ -32,12 +32,12 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum by (route, method) (rate(http_requests_total{route!~\"^/(_next|css|js|images|img|fonts|favicon\\.ico|metrics|health)(/|$)|.*\\.(css|js|map|png|jpg|jpeg|gif|svg|ico|woff|woff2)$\"}[1m]))",
+          "expr": "sum by (route, method) (rate(http_requests_total[1m]))",
           "legendFormat": "{{method}} {{route}}",
           "refId": "A"
         }
       ],
-      "title": "Taxa de Requisições por Rota (req/s, rate[1m])",
+      "title": "Taxa de Requisições (req/s)",
       "type": "timeseries"
     },
     {
@@ -56,12 +56,12 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum by (route) (rate(http_requests_total{status_code=~\"4..|5..\",route!~\"^/(_next|css|js|images|img|fonts|favicon\\.ico|metrics|health)(/|$)|.*\\.(css|js|map|png|jpg|jpeg|gif|svg|ico|woff|woff2)$\"}[1m]))",
+          "expr": "sum by (route) (rate(http_requests_total{status_code=~\"4..|5..\"}[1m]))",
           "legendFormat": "Erros {{route}}",
           "refId": "A"
         }
       ],
-      "title": "Taxa de Erros HTTP por Rota (4xx/5xx, rate[1m])",
+      "title": "Taxa de Erros HTTP (4xx/5xx por rota)",
       "type": "timeseries"
     },
     {
@@ -97,14 +97,14 @@
           "refId": "C"
         }
       ],
-      "title": "Latência HTTP por Rota (p50/p95/p99, bucket rate[1m])",
+      "title": "Latência HTTP (p50 / p95 / p99)",
       "type": "timeseries"
     },
     {
       "collapsed": false,
       "gridPos": { "h": 1, "w": 24, "x": 0, "y": 17 },
       "id": 101,
-      "title": "Processo Node.js (séries no período selecionado)",
+      "title": "Processo Node.js",
       "type": "row"
     },
     {
@@ -140,7 +140,7 @@
           "refId": "C"
         }
       ],
-      "title": "Uso de Memória Node.js (período selecionado)",
+      "title": "Uso de Memória (Node.js)",
       "type": "timeseries"
     },
     {
@@ -170,7 +170,7 @@
           "refId": "B"
         }
       ],
-      "title": "Handles e Requests Ativos (período selecionado)",
+      "title": "Handles & Requests Ativos",
       "type": "timeseries"
     },
     {
@@ -194,7 +194,7 @@
           "refId": "A"
         }
       ],
-      "title": "Uptime do Processo (s, período selecionado)",
+      "title": "Uptime do Processo",
       "type": "timeseries"
     },
     {
@@ -218,7 +218,7 @@
           "refId": "A"
         }
       ],
-      "title": "Execuções de GC por Tipo (contador no período selecionado)",
+      "title": "Execuções de GC (Garbage Collector)",
       "type": "timeseries"
     }
   ],
@@ -229,7 +229,7 @@
   "time": { "from": "now-15m", "to": "now" },
   "timepicker": {},
   "timezone": "browser",
-  "title": "Bull Board App — Métricas (visão padrão: últimos 15m)",
+  "title": "Bull Board App — Métricas",
   "uid": "bull-board-app-metrics",
   "version": 1
 }

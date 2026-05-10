@@ -23,16 +23,21 @@ export default function RabbitMQPage() {
   const [batchTtl, setBatchTtl] = useState<number>(0);
   const [batchMsg, setBatchMsg] = useState<string | null>(null);
   const [batchLoading, setBatchLoading] = useState(false);
+
+  async function callRabbit(action: string, payload: Record<string, unknown> = {}) {
+    return fetch("/api/rabbitmq", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action, payload }),
+    });
+  }
+
   async function fetchDlqMessages() {
     setDlqLoading(true);
     setDlqError(null);
     setDlqMessages([]);
     try {
-      const res = await fetch("/api/rabbitmq-advanced", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "consume-dlq", payload: {} }),
-      });
+      const res = await callRabbit("consume-dlq");
       const data = await res.json();
       if (data.messages) setDlqMessages(data.messages);
       else setDlqError("No messages found");
@@ -49,11 +54,7 @@ export default function RabbitMQPage() {
     setBatchQueueMessages([]);
     setSelectedBatchQueue(queue);
     try {
-      const res = await fetch("/api/rabbitmq-advanced", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "consume-batch-queue", payload: { queue } }),
-      });
+      const res = await callRabbit("consume-batch-queue", { queue });
       const data = await res.json();
       if (data.messages) setBatchQueueMessages(data.messages);
       else setBatchQueueError("No messages found");
@@ -66,11 +67,7 @@ export default function RabbitMQPage() {
 
   async function handleAckNack(queue: string, msg: string, ack: boolean) {
     try {
-      await fetch("/api/rabbitmq-advanced", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "consume-ack-nack-single", payload: { queue, message: msg, ack } }),
-      });
+      await callRabbit("consume-ack-nack-single", { queue, message: msg, ack });
       if (queue === 'dlq_demo') fetchDlqMessages();
       else fetchBatchQueueMessages(queue);
     } catch {}
@@ -87,10 +84,12 @@ export default function RabbitMQPage() {
         setBatchLoading(false);
         return;
       }
-      const res = await fetch("/api/rabbitmq-lote", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user: batchUser, messages: texts, exchangeType: batchExchange, priority: batchPriority, ttl: batchTtl }),
+      const res = await callRabbit("send-batch", {
+        user: batchUser,
+        messages: texts,
+        exchangeType: batchExchange,
+        priority: batchPriority,
+        ttl: batchTtl,
       });
       const data = await res.json();
       setBatchMsg(data.message || "Batch sent!");
@@ -105,15 +104,11 @@ export default function RabbitMQPage() {
     }
   }
 
-  async function handleSend(action: string, payload?: Record<string, unknown>) {
+  async function handleSend(action: string, payload: Record<string, unknown> = {}) {
     setLoading(true);
     setResult(null);
     try {
-      const res = await fetch("/api/rabbitmq-advanced", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      const res = await callRabbit(action, payload);
       const data = await res.json();
       setResult(data.message || data.info || JSON.stringify(data));
     } catch {
@@ -169,13 +164,13 @@ export default function RabbitMQPage() {
           {didacticOpen && (
             <div className="flex flex-col gap-2">
               {[
-                { label: 'Direct Exchange', hint: 'Roteia pelo routing key exato', action: "send-exchange", payload: { action: "send-exchange", payload: { exchange: "direct_demo", type: "direct", routingKey: "key1", message: "Direct exchange message" } } },
-                { label: 'Setup DLQ', hint: 'Configura Dead Letter Queue para mensagens rejeitadas', action: "send-dlq", payload: { action: "send-dlq", payload: { message: "DLQ message" } } },
-                { label: 'Priority 5', hint: 'Mensagem com prioridade 5 (0–10)', action: "send-priority", payload: { action: "send-priority", payload: { message: "Priority message", priority: 5 } } },
-                { label: 'TTL 5s', hint: 'Mensagem expira em 5 000 ms se não consumida', action: "send-ttl", payload: { action: "send-ttl", payload: { message: "TTL message", ttl: 5000 } } },
-                { label: 'Enfileirar Ack/Nack', hint: 'Publica mensagem na fila de ack/nack demo', action: "ack-nack-demo", payload: { action: "ack-nack-demo", payload: { message: `Ack/Nack message ${Date.now()}` } } },
-                { label: 'Consumir → Ack ✓', hint: 'Consome próxima mensagem e confirma entrega', action: "consume-ack", payload: { action: "consume-ack-nack", payload: { ack: true } } },
-                { label: 'Consumir → Nack ✗', hint: 'Consome próxima mensagem e rejeita (re-enfileira)', action: "consume-nack", payload: { action: "consume-ack-nack", payload: { ack: false } } },
+                { label: 'Direct Exchange', hint: 'Roteia pelo routing key exato', action: "send-exchange", payload: { exchange: "direct_demo", type: "direct", routingKey: "key1", message: "Direct exchange message" } },
+                { label: 'Setup DLQ', hint: 'Configura Dead Letter Queue para mensagens rejeitadas', action: "send-dlq", payload: { message: "DLQ message" } },
+                { label: 'Priority 5', hint: 'Mensagem com prioridade 5 (0–10)', action: "send-priority", payload: { message: "Priority message", priority: 5 } },
+                { label: 'TTL 5s', hint: 'Mensagem expira em 5 000 ms se não consumida', action: "send-ttl", payload: { message: "TTL message", ttl: 5000 } },
+                { label: 'Enfileirar Ack/Nack', hint: 'Publica mensagem na fila de ack/nack demo', action: "ack-nack-demo", payload: { message: `Ack/Nack message ${Date.now()}` } },
+                { label: 'Consumir → Ack ✓', hint: 'Consome próxima mensagem e confirma entrega', action: "consume-ack-nack", payload: { ack: true } },
+                { label: 'Consumir → Nack ✗', hint: 'Consome próxima mensagem e rejeita (re-enfileira)', action: "consume-ack-nack", payload: { ack: false } },
               ].map(({ label, hint, action, payload }) => (
                 <div key={action} className="ds-list-item flex flex-col gap-0.5">
                   <div className="flex items-center justify-between gap-2">
@@ -198,7 +193,7 @@ export default function RabbitMQPage() {
                   <span className="text-sm font-semibold text-slate-800">3 Consumers Simultâneos</span>
                   <button
                     className="ds-btn-primary py-1 text-xs shrink-0"
-                    onClick={() => handleSend("simulate-consumers", { action: "simulate-consumers", payload: { queue: "rabbitmq-queue", consumers: 3 } })}
+                    onClick={() => handleSend("simulate-consumers", { queue: "orders_queue", consumers: 3 })}
                     disabled={loading}
                   >
                     {loading ? '…' : 'Executar'}
