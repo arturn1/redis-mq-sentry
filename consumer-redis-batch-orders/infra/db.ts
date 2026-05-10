@@ -3,8 +3,9 @@
 // Uses mssql package to connect to SQL Server (docker: sqlserver)
 
 import sql from 'mssql';
+import type { OrderPayload } from '../types/order';
 
-const config = {
+const config: sql.config = {
   user: 'sa',
   password: 'Your_strong_password123',
   server: 'sqlserver',
@@ -32,7 +33,17 @@ const poolPromise = new sql.ConnectionPool(config)
     throw err;
   });
 
-export async function saveOrder(order: any | null | undefined) {
+function normalizeCreatedAtUtc(value: string | Date): Date {
+  const date = value instanceof Date ? value : new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    throw new Error(`Order payload invalido: CreatedAtUtc invalido. Valor=${String(value)}`);
+  }
+
+  return date;
+}
+
+export async function saveOrder(order: OrderPayload | null | undefined): Promise<boolean> {
   if (!order?.id) {
     throw new Error(`Order payload invalido: Id ausente. Payload=${JSON.stringify(order)}`);
   }
@@ -49,9 +60,13 @@ export async function saveOrder(order: any | null | undefined) {
     throw new Error(`Order payload invalido: CreatedAtUtc ausente. Id=${order.id}`);
   }
 
+  const createdAtUtc = normalizeCreatedAtUtc(order.createdAtUtc);
+
+  let ps: sql.PreparedStatement | null = null;
+
   try {
     const pool = await poolPromise;
-    const ps = new sql.PreparedStatement(pool);
+    ps = new sql.PreparedStatement(pool);
     ps.input('Id', sql.UniqueIdentifier);
     ps.input('CustomerName', sql.NVarChar(255));
     ps.input('TotalAmount', sql.Decimal(18, 2));
@@ -67,13 +82,16 @@ export async function saveOrder(order: any | null | undefined) {
       CustomerName: order.customerName,
       TotalAmount: order.totalAmount,
       Status: order.status ?? 1,
-      CreatedAtUtc: order.createdAtUtc,
+      CreatedAtUtc: createdAtUtc,
     });
 
-    await ps.unprepare();
     return true;
   } catch (err) {
     console.error('Erro ao salvar order no banco:', err);
     throw err;
+  } finally {
+    if (ps) {
+      await ps.unprepare().catch(() => undefined);
+    }
   }
 }

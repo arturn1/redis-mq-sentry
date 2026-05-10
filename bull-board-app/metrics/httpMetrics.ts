@@ -30,4 +30,8 @@ export function setupHttpMetrics(app: any) {
     });
     next();
   });
+  app.get('/metrics', async (_req: Request, res: Response) => {
+  res.set('Content-Type', client.register.contentType);
+  res.end(await client.register.metrics());
+});
 }
