@@ -10,6 +10,50 @@ type RedisOrder = {
   processedAt?: string;
 };
 
+type BatchOrderPayload = {
+  id: string;
+  customerName: string;
+  totalAmount: number;
+  status: number;
+  createdAtUtc: string;
+};
+
+function normalizeBatchOrder(input: string, index: number): BatchOrderPayload {
+  const fallback: BatchOrderPayload = {
+    id: crypto.randomUUID(),
+    customerName: input.trim() || `Cliente ${index + 1}`,
+    totalAmount: 100,
+    status: 1,
+    createdAtUtc: new Date().toISOString(),
+  };
+
+  try {
+    const parsed = JSON.parse(input);
+    if (!parsed || typeof parsed !== "object") {
+      return fallback;
+    }
+
+    return {
+      id: typeof parsed.id === "string" && parsed.id.trim() ? parsed.id : crypto.randomUUID(),
+      customerName:
+        typeof parsed.customerName === "string" && parsed.customerName.trim()
+          ? parsed.customerName
+          : fallback.customerName,
+      totalAmount:
+        typeof parsed.totalAmount === "number" && Number.isFinite(parsed.totalAmount)
+          ? parsed.totalAmount
+          : fallback.totalAmount,
+      status: typeof parsed.status === "number" ? parsed.status : fallback.status,
+      createdAtUtc:
+        typeof parsed.createdAtUtc === "string" && parsed.createdAtUtc.trim()
+          ? parsed.createdAtUtc
+          : fallback.createdAtUtc,
+    };
+  } catch {
+    return fallback;
+  }
+}
+
 export default function RedisPage() {
   // Lote Redis
   const [batchOrders, setBatchOrders] = useState<string[]>([""]);
@@ -36,12 +80,15 @@ export default function RedisPage() {
     setBatchLoading(true);
     setBatchMsg(null);
     try {
-      const orders = batchOrders.filter((t) => t.trim().length > 0);
-      if (!batchUser || orders.length === 0) {
+      const rawOrders = batchOrders.filter((t) => t.trim().length > 0);
+      if (!batchUser || rawOrders.length === 0) {
         setBatchMsg("Preencha usuário e pelo menos um pedido.");
         setBatchLoading(false);
         return;
       }
+
+      const orders = rawOrders.map((item, index) => normalizeBatchOrder(item, index));
+
       const res = await fetch("/api/redis", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -84,8 +131,14 @@ export default function RedisPage() {
     setBatchOrderLoading(true);
     setBatchOrderMsg(null);
     try {
-      // Gera um array de pedidos fictícios
-      const orders = Array.from({ length: batchCount }, (_, i) => `${Date.now()}`);
+      // Gera pedidos fictícios no formato esperado pelo consumer persistente
+      const orders: BatchOrderPayload[] = Array.from({ length: batchCount }, (_, i) => ({
+        id: crypto.randomUUID(),
+        customerName: `Demo User ${i + 1}`,
+        totalAmount: Number((Math.random() * 900 + 100).toFixed(2)),
+        status: 1,
+        createdAtUtc: new Date().toISOString(),
+      }));
       const payload = {
         user: "demo-user",
         orders: orders

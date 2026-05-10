@@ -109,12 +109,12 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(increase(consumer_jobs_processed_total{job=~\"consumer-redis-orders\", status=\"success\"}[5m]))",
+          "expr": "sum(increase(consumer_jobs_processed_total{job=~\"consumer-redis-orders\", status=\"success\"}[$__range]))",
           "legendFormat": "redis-orders",
           "refId": "A"
         }
       ],
-      "title": "redis-orders — Sucesso (últimos 5m)",
+      "title": "redis-orders — Sucesso (período selecionado)",
       "type": "stat"
     },
     {
@@ -133,12 +133,12 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(increase(consumer_jobs_processed_total{job=~\"consumer-redis-orders\", status=\"error\"}[5m])) or vector(0)",
+          "expr": "sum(increase(consumer_jobs_processed_total{job=~\"consumer-redis-orders\", status=\"error\"}[$__range])) or vector(0)",
           "legendFormat": "redis-orders",
           "refId": "A"
         }
       ],
-      "title": "redis-orders — Erros (últimos 5m)",
+      "title": "redis-orders — Erros (período selecionado)",
       "type": "stat"
     },
     {
@@ -157,12 +157,12 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(increase(consumer_jobs_processed_total{job=~\"consumer-redis-batch-orders\", status=\"success\"}[5m]))",
+          "expr": "sum(increase(consumer_jobs_processed_total{job=~\"consumer-redis-batch-orders\", status=\"success\"}[$__range]))",
           "legendFormat": "redis-batch-orders",
           "refId": "A"
         }
       ],
-      "title": "redis-batch-orders — Sucesso (últimos 5m)",
+      "title": "redis-batch-orders — Sucesso (período selecionado)",
       "type": "stat"
     },
     {
@@ -181,12 +181,12 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(increase(consumer_jobs_processed_total{job=~\"consumer-redis-batch-orders\", status=\"error\"}[5m])) or vector(0)",
+          "expr": "sum(increase(consumer_jobs_processed_total{job=~\"consumer-redis-batch-orders\", status=\"error\"}[$__range])) or vector(0)",
           "legendFormat": "redis-batch-orders",
           "refId": "A"
         }
       ],
-      "title": "redis-batch-orders — Erros (últimos 5m)",
+      "title": "redis-batch-orders — Erros (período selecionado)",
       "type": "stat"
     },
     {
@@ -205,12 +205,12 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(increase(consumer_messages_processed_total{job=\"consumer-rabbitmq\", status=\"success\"}[5m]))",
+          "expr": "sum(increase(consumer_messages_processed_total{job=\"consumer-rabbitmq\", status=\"success\"}[$__range]))",
           "legendFormat": "rabbitmq",
           "refId": "A"
         }
       ],
-      "title": "rabbitmq — Sucesso (últimos 5m)",
+      "title": "rabbitmq — Sucesso (período selecionado)",
       "type": "stat"
     },
     {
@@ -229,12 +229,12 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(increase(consumer_messages_processed_total{job=\"consumer-rabbitmq\", status=\"error\"}[5m])) or vector(0)",
+          "expr": "sum(increase(consumer_messages_processed_total{job=\"consumer-rabbitmq\", status=\"error\"}[$__range])) or vector(0)",
           "legendFormat": "rabbitmq",
           "refId": "A"
         }
       ],
-      "title": "rabbitmq — Erros (últimos 5m)",
+      "title": "rabbitmq — Erros (período selecionado)",
       "type": "stat"
     },
     {

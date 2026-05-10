@@ -189,7 +189,7 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "process_uptime_seconds",
+          "expr": "process_uptime_seconds{job=\"bull-board-app\"}",
           "legendFormat": "Uptime (s)",
           "refId": "A"
         }
@@ -213,12 +213,12 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "nodejs_gc_runs_total",
-          "legendFormat": "GC Runs {{gctype}}",
+          "expr": "sum(rate(http_requests_total{job=\"bull-board-app\"}[1m]))",
+          "legendFormat": "Taxa de Requisições (req/s)",
           "refId": "A"
         }
       ],
-      "title": "Execuções de GC (Garbage Collector)",
+      "title": "Carga do Serviço (Requisições/s)",
       "type": "timeseries"
     }
   ],

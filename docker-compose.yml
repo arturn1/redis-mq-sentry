@@ -79,6 +79,7 @@
         depends_on:
           - redis
           - rabbitmq
+          - mongo
       orders-api-dotnet:
         build:
           context: ./orders-api-dotnet

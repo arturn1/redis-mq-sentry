@@ -2,11 +2,12 @@ import { Router, Request, Response } from 'express';
 import { createClient } from 'redis';
 import { v4 as uuidv4 } from 'uuid';
 import { RedisService } from '../services/redisService';
+import { withTraceId } from '../services/queuePayload';
 
 
 const router = Router();
 const redis = createClient({ url: 'redis://redis:6379' });
-redis.on('error', (err) => {
+redis.on('error', (err: Error) => {
   console.error(`[RedisController] erro de conexao Redis: ${err.message}`);
 });
 
@@ -27,8 +28,15 @@ void ensureRedisConnection();
 const LIST_KEY = 'orders:pending';
 const HASH_PREFIX = 'order:';
 
+function getOrCreateTraceId(req: Request, res: Response): string {
+  const headerTraceId = req.header('X-Trace-Id')?.trim();
+  const traceId = headerTraceId || uuidv4();
+  return traceId;
+}
+
 // Adiciona novo pedido (POST)
 router.post('/', async (req: Request, res: Response) => {
+  getOrCreateTraceId(req, res);
   await ensureRedisConnection();
   if (!redis.isOpen) return res.status(503).json({ error: 'Redis indisponivel' });
   const { value } = req.body;
@@ -42,10 +50,11 @@ router.post('/', async (req: Request, res: Response) => {
 
 // Lista todos os pedidos pendentes (GET)
 router.get('/', async (_req: Request, res: Response) => {
+  getOrCreateTraceId(_req, res);
   await ensureRedisConnection();
   if (!redis.isOpen) return res.status(503).json({ error: 'Redis indisponivel' });
   const ids = await redis.lRange(LIST_KEY, 0, -1);
-  const orders = await Promise.all(ids.map(async (id) => {
+  const orders = await Promise.all(ids.map(async (id: string) => {
     const data = await redis.hGetAll(HASH_PREFIX + id);
     return { ...data, id };
   }));
@@ -54,6 +63,7 @@ router.get('/', async (_req: Request, res: Response) => {
 
 // Processa um pedido (POST /process/:id)
 router.post('/process/:id', async (req: Request, res: Response) => {
+  getOrCreateTraceId(req, res);
   await ensureRedisConnection();
   if (!redis.isOpen) return res.status(503).json({ error: 'Redis indisponivel' });
   const { id } = req.params;
@@ -75,6 +85,7 @@ router.post('/process/:id', async (req: Request, res: Response) => {
 
 // Remove um pedido da lista (DELETE /:id)
 router.delete('/:id', async (req: Request, res: Response) => {
+  getOrCreateTraceId(req, res);
   await ensureRedisConnection();
   if (!redis.isOpen) return res.status(503).json({ error: 'Redis indisponivel' });
   const { id } = req.params;
@@ -86,26 +97,30 @@ router.delete('/:id', async (req: Request, res: Response) => {
 // Usando Redis com Bull Board para filas rápidas e lentas
 // Envia para fila lenta em lote (POST /send-batch)
 router.post('/send-batch', async (req: Request, res: Response) => {
+  const traceId = getOrCreateTraceId(req, res);
   await ensureRedisConnection();
   if (!redis.isOpen) return res.status(503).json({ error: 'Redis indisponivel' });
   const { orders, user } = req.body;
   if (!Array.isArray(orders) || orders.length === 0) {
     return res.status(400).json({ message: 'Empty batch' });
   }
+  console.log('Enviando batch para fila lenta', orders);
   const batchId = `batch_${Date.now()}_${Math.floor(Math.random()*10000)}`;
-  await RedisService.addEmail({ user, type: 'batch_start', batchId, total: orders.length });
-  for (const message of orders) {
-    await RedisService.addBatchOrders({ message, user, batchId, total: orders.length });
+  await RedisService.addEmail(withTraceId({ user, type: 'batch_start', batchId, total: orders.length }, traceId));
+  for (const order of orders) {
+    console.log('Enviando order para fila lenta', order);
+    await RedisService.addBatchOrders(withTraceId({ order, user, batchId, total: orders.length }, traceId));
   }
   res.json({ message: 'Batch sended to slow queue', batchId });
 });
 
 // Envia para fila rápida (POST /send/orders)
 router.post('/send/orders', async (req: Request, res: Response) => {
+  const traceId = getOrCreateTraceId(req, res);
   await ensureRedisConnection();
   if (!redis.isOpen) return res.status(503).json({ error: 'Redis indisponivel' });
   const { order } = req.body;
-  await RedisService.addOrders({ order });
+  await RedisService.addOrders(withTraceId({ order }, traceId));
   return res.json({ message: 'Send to fast queue' });
 });
 

@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Orders.Infrastructure;
+using Orders.Infrastructure.Messaging;
 using Orders.Infrastructure.Persistence;
-using Orders.Api.Resilience;
 using Prometheus;
 using System.Diagnostics;
 using System.Globalization;
@@ -14,7 +14,6 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddInfrastructure(builder.Configuration);
-builder.Services.AddSingleton<DatabaseDegradationState>();
 
 // Adiciona o serviço de background para upload dos logs
 builder.Services.AddHostedService<LogUploadBackgroundService>();
@@ -23,6 +22,9 @@ var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
 {
+	var topologyInitializer = scope.ServiceProvider.GetRequiredService<RabbitTopologyInitializer>();
+	await topologyInitializer.InitializeAsync(CancellationToken.None);
+
     var db = scope.ServiceProvider.GetRequiredService<OrdersDbContext>();
     db.Database.Migrate();
 }

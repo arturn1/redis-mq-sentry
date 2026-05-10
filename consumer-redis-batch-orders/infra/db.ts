@@ -23,18 +23,18 @@ const config = {
 // Create a single pool instance for the app
 const poolPromise = new sql.ConnectionPool(config)
   .connect()
-  .then(pool => {
+  .then((pool: sql.ConnectionPool) => {
     console.log('Connected to SQL Server');
     return pool;
   })
-  .catch(err => {
+  .catch((err: unknown) => {
     console.error('SQL Server Connection Error:', err);
     throw err;
   });
 
 export async function saveOrder(order: any | null | undefined) {
   if (!order?.id) {
-    throw new Error(`Order payload invalido: id ausente. Payload=${JSON.stringify(order)}`);
+    throw new Error(`Order payload invalido: Id ausente. Payload=${JSON.stringify(order)}`);
   }
 
   if (!order.customerName) {

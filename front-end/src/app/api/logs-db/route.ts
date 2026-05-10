@@ -18,6 +18,8 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const page = Number(searchParams.get('page') || 1);
   const pageSize = Number(searchParams.get('pageSize') || 20);
+  const appname = (searchParams.get('appname') || '').trim();
+  const traceId = (searchParams.get('traceId') || '').trim();
   const status = (searchParams.get('status') || '').trim();
   const method = (searchParams.get('method') || '').trim();
   const action = (searchParams.get('action') || '').trim();
@@ -35,6 +37,14 @@ export async function GET(req: NextRequest) {
     const db = client.db(DB_NAME);
     const collection = db.collection(COLLECTION);
     const filter: Record<string, any> = {};
+
+    if (appname) {
+      filter.appname = { $regex: escapeRegex(appname), $options: 'i' };
+    }
+
+    if (traceId) {
+      filter.trace_id = { $regex: escapeRegex(traceId), $options: 'i' };
+    }
 
     if (status) {
       filter.status = { $regex: escapeRegex(status), $options: 'i' };

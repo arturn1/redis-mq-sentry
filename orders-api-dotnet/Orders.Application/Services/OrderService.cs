@@ -8,17 +8,16 @@ namespace Orders.Application.Services;
 public class OrderService : IOrderService
 {
     private readonly IOrderRepository _orderRepository;
-    private readonly IFastQueuePublisher _fastQueuePublisher;
+    private readonly IOrderQueuePublisher _orderQueuePublisher;
     private readonly IRabbitQueuePublisher _rabbitQueuePublisher;
 
     public OrderService(
         IOrderRepository orderRepository,
-        ISlowQueuePublisher slowQueuePublisher,
-        IFastQueuePublisher fastQueuePublisher,
+        IOrderQueuePublisher orderQueuePublisher,
         IRabbitQueuePublisher rabbitQueuePublisher)
     {
         _orderRepository = orderRepository;
-        _fastQueuePublisher = fastQueuePublisher;
+        _orderQueuePublisher = orderQueuePublisher;
         _rabbitQueuePublisher = rabbitQueuePublisher;
     }
 
@@ -31,35 +30,17 @@ public class OrderService : IOrderService
             CustomerName = request.CustomerName,
             TotalAmount = request.TotalAmount,
             CreatedAtUtc = DateTime.UtcNow,
-            Status = OrderStatus.Created
+            Status = OrderStatus.Enqueued
         };
 
-        bool published = false;
         try
         {
-            await _fastQueuePublisher.PublishAsync(order, cancellationToken);
-            order.Status = OrderStatus.Enqueued;
-            published = true;
+            await _orderQueuePublisher.PublishAsync(order, cancellationToken);
+            //await _rabbitQueuePublisher.PublishAsync(order, cancellationToken);
         }
         catch (Exception ex)
         {
-            // Log warning: Redis indisponível, fallback para RabbitMQ
-            try
-            {
-                await _rabbitQueuePublisher.PublishAsync(order, cancellationToken);
-                order.Status = OrderStatus.EnqueuedFallbackRabbit;
-                published = true;
-            }
-            catch (Exception rabbitEx)
-            {
-                order.Status = OrderStatus.EnqueueFailed;
-                // Log error: Falha em ambos Redis e RabbitMQ
-                throw new Exception("Falha ao enfileirar no Redis e RabbitMQ", new AggregateException(ex, rabbitEx));
-            }
-        }
-        finally
-        {
-            await _orderRepository.SaveChangesAsync(cancellationToken);
+            throw new Exception("Error publishing order: " + ex.Message, ex);
         }
 
         return ToResponse(order);

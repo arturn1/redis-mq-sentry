@@ -11,11 +11,12 @@ const PRIORITY_QUEUE = 'priority_queue';
 const TTL_QUEUE = 'ttl_queue'; 
 const ACK_QUEUE = 'ack_queue';
 const ORDERS_QUEUE = 'orders_queue';
+const ORDERS_DQL = 'orders_dlq';
 
 router.post('/send-default', async (req: Request, res: Response) => {
     const conn = await RabbitService.connect();
     const ch = await conn.createChannel();
-    await ch.assertQueue(DLQ_QUEUE, { durable: true });
+    await ch.assertQueue(ORDERS_DQL, { durable: true });
     await ch.assertQueue(DEFAULT_QUEUE, {
       durable: true,
       deadLetterExchange: '',
@@ -175,17 +176,22 @@ router.post('/send-ttl', async (req: Request, res: Response) => {
 
 // Send order payload to queue consumed by consumer-rabbitmq
 router.post('/send/orders', async (req: Request, res: Response) => {
-  const { Id, CustomerName, TotalAmount, Status, CreatedAtUtc } = req.body;
+  const { id, customerName, totalAmount, status, createdAtUtc } = req.body;
 
-  if (!Id || !CustomerName || TotalAmount == null || !Status || !CreatedAtUtc) {
+  if (!id || !customerName || totalAmount == null || !status || !createdAtUtc) {
     return res.status(400).json({ ok: false, info: 'Invalid order payload' });
   }
 
   try {
     const conn = await RabbitService.connect();
     const ch = await conn.createChannel();
-    await ch.assertQueue(ORDERS_QUEUE, { durable: true });
-    ch.sendToQueue(ORDERS_QUEUE, Buffer.from(JSON.stringify({ Id, CustomerName, TotalAmount, Status, CreatedAtUtc })), {
+     await ch.assertQueue(ORDERS_DQL, { durable: true });
+    await ch.assertQueue(ORDERS_QUEUE, {
+      durable: true,
+      deadLetterExchange: '',
+      deadLetterRoutingKey: ORDERS_DQL,
+    });
+    ch.sendToQueue(ORDERS_QUEUE, Buffer.from(JSON.stringify({ id, customerName, totalAmount, status, createdAtUtc })), {
       persistent: true,
     });
     await ch.close();

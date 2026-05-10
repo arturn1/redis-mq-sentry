@@ -38,7 +38,7 @@ export async function saveOrder(order: any) {
     ps.input('Id', sql.UniqueIdentifier);
     ps.input('CustomerName', sql.NVarChar(255));
     ps.input('TotalAmount', sql.Decimal(18, 2));
-    ps.input('Status', sql.NVarChar(50));
+    ps.input('Status', sql.Int);
     ps.input('CreatedAtUtc', sql.DateTime2);
 
     await ps.prepare(
@@ -49,7 +49,7 @@ export async function saveOrder(order: any) {
       Id: order.Id,
       CustomerName: order.CustomerName,
       TotalAmount: order.TotalAmount,
-      Status: order.Status,
+      Status: 1,
       CreatedAtUtc: order.CreatedAtUtc,
     });
 

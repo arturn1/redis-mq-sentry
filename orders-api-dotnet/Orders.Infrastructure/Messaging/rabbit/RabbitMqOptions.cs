@@ -12,6 +12,8 @@ public class RabbitMqOptions
     public string Password { get; set; } = "guest";
     public string VirtualHost { get; set; } = "/";
     public string ManagementUrl { get; set; } = "http://rabbitmq:15672";
+    public string OrdersQueue { get; set; } = "orders_queue";
+    public string OrdersDlqQueue { get; set; } = "orders_dlq";
 
     public string Exchange { get; set; } = string.Empty;
     public string GetQueue { get; set; } = string.Empty;

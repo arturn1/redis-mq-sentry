@@ -8,6 +8,10 @@ const createOrderDuration = new Trend('orders_create_duration_ms');
 const listOrdersDuration = new Trend('orders_list_duration_ms');
 const createOrderErrors = new Counter('orders_create_errors_total');
 const listOrdersErrors = new Counter('orders_list_errors_total');
+const ordersPostsTotal = new Counter('orders_posts_total');
+const ordersGetTotal = new Counter('orders_get_total');
+const createOrderSuccess = new Counter('orders_create_success_total');
+const listOrdersSuccess = new Counter('orders_list_success_total');
 
 export const options = {
   scenarios: {
@@ -25,16 +29,16 @@ export const options = {
     //   ],
     //   gracefulRampDown: '20s'
     // },
-    // list_orders: {
-    //   executor: 'constant-vus',
-    //   exec: 'listOrdersScenario',
-    //   vus: 1000,
-    //   duration: '1m'
-    // },
+    list_orders: {
+      executor: 'constant-vus',
+      exec: 'listOrdersScenario',
+      vus: 10,
+      duration: '1m'
+    },
     create_orders: {
       executor: 'constant-vus',
       exec: 'createOrderScenario',
-      vus: 1,
+      vus: 100,
       duration: '1m'
     }
   },
@@ -61,6 +65,8 @@ export function createOrderScenario() {
     tags: { endpoint: 'create-order' }
   });
 
+  ordersPostsTotal.add(1, { endpoint: 'create-order', method: 'POST' });
+
   createOrderDuration.add(res.timings.duration);
 
   const ok = check(res, {
@@ -69,6 +75,8 @@ export function createOrderScenario() {
 
   if (!ok) {
     createOrderErrors.add(1);
+  } else {
+    createOrderSuccess.add(1);
   }
 
   sleep(1.5);
@@ -78,6 +86,8 @@ export function listOrdersScenario() {
   const res = http.get(`${BASE_URL}/api/orders?page=1&pageSize=20`, {
     tags: { endpoint: 'list-orders' }
   });
+
+  ordersGetTotal.add(1, { endpoint: 'list-orders', method: 'GET' });
 
   listOrdersDuration.add(res.timings.duration);
 
@@ -98,6 +108,8 @@ export function listOrdersScenario() {
 
   if (!ok) {
     listOrdersErrors.add(1);
+  } else {
+    listOrdersSuccess.add(1);
   }
 
   sleep(0.5);

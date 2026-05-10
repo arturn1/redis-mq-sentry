@@ -71,10 +71,7 @@ export default function OrdersDbPage() {
     if (status === 'Enqueued') {
       return <span className="ds-badge-success">Enqueued</span>;
     }
-    if (status === 'EnqueueFailed') {
-      return <span className="rounded-full bg-rose-50 px-2.5 py-1 text-xs font-medium text-rose-700">Failed</span>;
-    }
-    return <span className="ds-badge-neutral">Pending</span>;
+    return <span className="ds-badge-neutral">Created</span>;
   }
 
   return (

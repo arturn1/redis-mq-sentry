@@ -55,12 +55,12 @@ public class LogUploadBackgroundService : BackgroundService
         {
             var lines = await File.ReadAllLinesAsync(file, Encoding.UTF8);
             if (lines.Length <= 1) continue; // Só header
-            var header = lines[0].Split('\t');
             var entries = new List<MongoLogEntry>();
             for (int i = 1; i < lines.Length; i++)
             {
                 var cols = lines[i].Split('\t');
-                if (cols.Length < 9) continue;
+                if (cols.Length < 10) continue;
+
                 entries.Add(new MongoLogEntry
                 {
                     appname = cols[0],
@@ -71,8 +71,8 @@ public class LogUploadBackgroundService : BackgroundService
                     method = cols[5],
                     action = cols[6],
                     userid = cols[7],
-                    token = cols[8],
-                    stackTrace = cols.Length > 9 ? cols[9] : string.Empty
+                    body = cols[8],
+                    stackTrace = cols[9]
                 });
             }
             if (entries.Count > 0)
@@ -86,15 +86,15 @@ public class LogUploadBackgroundService : BackgroundService
 
     public class MongoLogEntry
     {
-        public string appname { get; set; }
-        public string trace_id { get; set; }
-        public string timestamp { get; set; }
-        public string status { get; set; }
-        public string elapsedSeconds { get; set; }
-        public string method { get; set; }
-        public string action { get; set; }
-        public string userid { get; set; }
-        public string token { get; set; }
-        public string stackTrace { get; set; }
+        public string appname { get; set; } = string.Empty;
+        public string trace_id { get; set; } = string.Empty;
+        public string timestamp { get; set; } = string.Empty;
+        public string status { get; set; } = string.Empty;
+        public string elapsedSeconds { get; set; } = string.Empty;
+        public string method { get; set; } = string.Empty;
+        public string action { get; set; } = string.Empty;
+        public string userid { get; set; } = string.Empty;
+        public string body { get; set; } = string.Empty;
+        public string stackTrace { get; set; } = string.Empty;
     }
 }

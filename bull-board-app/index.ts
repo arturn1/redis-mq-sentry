@@ -7,6 +7,7 @@ import rabbitRouter from './controllers/rabbit';
 import { RedisService } from './services/redisService';
 import client from 'prom-client';
 import { setupHttpMetrics } from './metrics/httpMetrics';
+import { startQueueLogUploadJob } from './logger/queueLogUploadJob';
 
 
 import cors from 'cors';
@@ -16,6 +17,7 @@ app.use(cors());
 app.use(express.json());
 
 setupHttpMetrics(app);
+startQueueLogUploadJob();
 
 // Bull Board UI (v7+) integration
 const { redisQueue, redisQueueBatch, emailQueue } = RedisService.getQueues();

@@ -8,7 +8,8 @@ import Bull from 'bull';
 import { messagesProcessed, messageDuration, messagesActive, register, startMetricsServer } from './src/metrics';
 import { saveOrder } from './src/db';
 
-const QUEUE_NAME = 'orders_queue';
+const ORDERS_QUEUE = 'orders_queue';
+const ORDERS_DQL = 'orders_dlq';
 
 startMetricsServer(9100);
 
@@ -18,28 +19,28 @@ async function start() {
 
   const conn = await amqp.connect('amqp://rabbitmq');
   const ch = await conn.createChannel();
-  await ch.assertQueue(QUEUE_NAME, { durable: true });
   console.log('Consumer RabbitMQ: waiting for messages...');
-  ch.consume(QUEUE_NAME, async (msg: ConsumeMessage | null) => {
+  ch.consume(ORDERS_QUEUE, async (msg: ConsumeMessage | null) => {
     if (msg) {
       const content = msg.content.toString();
       console.log('Consumer RabbitMQ: processing', content);
-      const end = messageDuration.startTimer({ queue: QUEUE_NAME });
-      messagesActive.inc({ queue: QUEUE_NAME });
+      const end = messageDuration.startTimer({ queue: ORDERS_QUEUE });
+      messagesActive.inc({ queue: ORDERS_QUEUE });
       try {
         // Parse order from message (assume JSON)
         const order = JSON.parse(content);
+        console.log('Consumer RabbitMQ: extracted order', order);
         await saveOrder(order);
         ch.ack(msg);
-        messagesProcessed.inc({ queue: QUEUE_NAME, status: 'success' });
+        messagesProcessed.inc({ queue: ORDERS_QUEUE, status: 'success' });
         console.log('Consumer RabbitMQ: finished', content);
       } catch (err) {
         ch.nack(msg, false, false);
-        messagesProcessed.inc({ queue: QUEUE_NAME, status: 'error' });
+        messagesProcessed.inc({ queue: ORDERS_QUEUE, status: 'error' });
         console.error('Consumer RabbitMQ: Error processing', err);
       } finally {
         end();
-        messagesActive.dec({ queue: QUEUE_NAME });
+        messagesActive.dec({ queue: ORDERS_QUEUE });
       }
     }
   });

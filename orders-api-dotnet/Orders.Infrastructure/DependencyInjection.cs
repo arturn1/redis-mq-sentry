@@ -20,15 +20,15 @@ public static class DependencyInjection
             options.UseSqlServer(
                 configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("DefaultConnection string not found")));
 
-        services.AddHttpClient<RedisSlowQueuePublisher>();
-        services.AddHttpClient<RedisFastQueuePublisher>();
-        services.AddHttpClient<RabbitQueuePublisher>();
+        services.AddHttpContextAccessor();
+        services.AddHttpClient<RedisOrderQueuePublisher>();
 
 
         services.AddScoped<IOrderRepository, OrderRepository>();
-        services.AddScoped<ISlowQueuePublisher, RedisSlowQueuePublisher>();
-        services.AddScoped<IFastQueuePublisher, RedisFastQueuePublisher>();
-        services.AddScoped<IRabbitQueuePublisher, RabbitQueuePublisher>();
+        services.AddScoped<IOrderQueuePublisher, RedisOrderQueuePublisher>();
+        services.AddSingleton<RabbitConnectionProvider>();
+        services.AddSingleton<RabbitTopologyInitializer>();
+        services.AddSingleton<IRabbitQueuePublisher, RabbitQueuePublisher>();
         services.AddScoped<IOrderService, OrderService>();
 
         return services;

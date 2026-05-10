@@ -4,8 +4,6 @@ public enum OrderStatus
 {
     Created = 1,
     Enqueued = 2,
-    EnqueueFailed = 3,
-    EnqueuedFallbackRabbit = 4
 }
 
 public class Order

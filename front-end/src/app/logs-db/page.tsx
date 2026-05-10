@@ -7,11 +7,12 @@ interface LogEntry {
   trace_id: string;
   timestamp: string;
   status: string;
-  elapsedSeconds: string;
+  elapsedSeconds?: string | number;
+  elapsed_seconds?: number;
   method: string;
   action: string;
   userid: string;
-  token: string;
+  body: string;
   stackTrace?: string;
 }
 
@@ -24,18 +25,22 @@ export default function LogsDbPage() {
   const [total, setTotal] = useState(0);
   const [excludeInput, setExcludeInput] = useState('/metrics');
   const [excludeActions, setExcludeActions] = useState<string[]>(['/metrics']);
+  const [appFilter, setAppFilter] = useState('');
+  const [traceIdFilter, setTraceIdFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [methodFilter, setMethodFilter] = useState('');
   const [actionFilter, setActionFilter] = useState('');
 
   useEffect(() => {
-    fetchLogs(page, pageSize, excludeActions, statusFilter, methodFilter, actionFilter);
-  }, [page, pageSize, excludeActions, statusFilter, methodFilter, actionFilter]);
+    fetchLogs(page, pageSize, excludeActions, appFilter, traceIdFilter, statusFilter, methodFilter, actionFilter);
+  }, [page, pageSize, excludeActions, appFilter, traceIdFilter, statusFilter, methodFilter, actionFilter]);
 
   async function fetchLogs(
     pageNum: number,
     pageSizeNum: number,
     excluded: string[],
+    appValue: string,
+    traceIdValue: string,
     statusValue: string,
     methodValue: string,
     actionValue: string
@@ -48,6 +53,8 @@ export default function LogsDbPage() {
         pageSize: String(pageSizeNum),
       });
       if (excluded.length > 0) params.set('excludeActions', excluded.join(','));
+      if (appValue.trim()) params.set('appname', appValue.trim());
+      if (traceIdValue.trim()) params.set('traceId', traceIdValue.trim());
       if (statusValue.trim()) params.set('status', statusValue.trim());
       if (methodValue.trim()) params.set('method', methodValue.trim());
       if (actionValue.trim()) params.set('action', actionValue.trim());
@@ -81,6 +88,52 @@ export default function LogsDbPage() {
   const successCount = logs.filter((l: LogEntry) => l.status?.toLowerCase().includes('ok') || l.status?.startsWith('2')).length;
   const errorCount = logs.filter((l: LogEntry) => l.status?.toLowerCase().includes('error') || l.status?.startsWith('5')).length;
   const otherCount = logs.length - successCount - errorCount;
+
+  function parseElapsedSeconds(log: LogEntry): number {
+    if (typeof log.elapsed_seconds === 'number' && Number.isFinite(log.elapsed_seconds)) {
+      return log.elapsed_seconds;
+    }
+    if (typeof log.elapsedSeconds === 'number' && Number.isFinite(log.elapsedSeconds)) {
+      return log.elapsedSeconds;
+    }
+    if (typeof log.elapsedSeconds === 'string') {
+      const parsed = Number(log.elapsedSeconds);
+      if (Number.isFinite(parsed)) {
+        return parsed;
+      }
+    }
+    return 0;
+  }
+
+  function formatElapsed(seconds: number): string {
+    if (!Number.isFinite(seconds) || seconds < 0) return '-';
+    if (seconds < 1) return `${Math.round(seconds * 1000)}ms`;
+
+    const totalSeconds = Math.floor(seconds);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const secs = totalSeconds % 60;
+
+    if (hours > 0) return `${hours}h ${minutes}m ${secs}s`;
+    if (minutes > 0) return `${minutes}m ${secs}s`;
+    return `${secs}s`;
+  }
+
+  function formatTimestamp(value: string): string {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+
+    return date.toLocaleString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    });
+  }
 
   function statusBadge(status: string) {
     const s = status?.toLowerCase() ?? '';
@@ -129,7 +182,31 @@ export default function LogsDbPage() {
       <div className="ds-panel">
         <span className="ds-section-title mb-3 block">Filtros</span>
         <div className="flex flex-col gap-2">
-          <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-5">
+            <div className="flex flex-col gap-1">
+              <label className="ds-text-muted text-xs">App (contains)</label>
+              <input
+                className="ds-input py-1 text-xs"
+                placeholder="orders-api-dotnet"
+                value={appFilter}
+                onChange={(e) => {
+                  setAppFilter(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="ds-text-muted text-xs">Trace ID (contains)</label>
+              <input
+                className="ds-input py-1 text-xs font-mono"
+                placeholder="abc-123"
+                value={traceIdFilter}
+                onChange={(e) => {
+                  setTraceIdFilter(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </div>
             <div className="flex flex-col gap-1">
               <label className="ds-text-muted text-xs">Status (contains)</label>
               <input
@@ -208,11 +285,11 @@ export default function LogsDbPage() {
                 <th className="p-2 border-b border-slate-200 text-left">Trace ID</th>
                 <th className="p-2 border-b border-slate-200 text-left">Timestamp</th>
                 <th className="p-2 border-b border-slate-200 text-left">Status</th>
-                <th className="p-2 border-b border-slate-200 text-left">Elapsed (s)</th>
+                <th className="p-2 border-b border-slate-200 text-left">Elapsed</th>
                 <th className="p-2 border-b border-slate-200 text-left">Method</th>
                 <th className="p-2 border-b border-slate-200 text-left">Action</th>
                 <th className="p-2 border-b border-slate-200 text-left">User ID</th>
-                <th className="p-2 border-b border-slate-200 text-left">Token (hash)</th>
+                <th className="p-2 border-b border-slate-200 text-left">Body (SHA-256)</th>
                 <th className="p-2 border-b border-slate-200 text-left">Stack Trace</th>
               </tr>
             </thead>
@@ -230,13 +307,13 @@ export default function LogsDbPage() {
                   <tr key={log._id} className="bg-white even:bg-slate-50/40">
                     <td className="p-2 border-b border-slate-100 font-mono">{log.appname}</td>
                     <td className="p-2 border-b border-slate-100 font-mono">{log.trace_id}</td>
-                    <td className="p-2 border-b border-slate-100">{log.timestamp}</td>
+                    <td className="p-2 border-b border-slate-100">{formatTimestamp(log.timestamp)}</td>
                     <td className="p-2 border-b border-slate-100">{statusBadge(log.status)}</td>
-                    <td className="p-2 border-b border-slate-100">{log.elapsedSeconds}</td>
+                    <td className="p-2 border-b border-slate-100">{formatElapsed(parseElapsedSeconds(log))}</td>
                     <td className="p-2 border-b border-slate-100">{log.method}</td>
                     <td className="p-2 border-b border-slate-100">{log.action}</td>
                     <td className="p-2 border-b border-slate-100">{log.userid}</td>
-                    <td className="p-2 border-b border-slate-100 font-mono">{log.token}</td>
+                    <td className="p-2 border-b border-slate-100 font-mono">{log.body}</td>
                     <td className="p-2 border-b border-slate-100 max-w-xl whitespace-pre-wrap break-all text-[11px] text-slate-600">{log.stackTrace || '-'}</td>
                   </tr>
                 ))

@@ -75,12 +75,12 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(http_requests_received_total{job=\"orders-api-dotnet\"})",
+          "expr": "sum(increase(http_requests_received_total{job=\"orders-api-dotnet\"}[$__range]))",
           "legendFormat": "Total",
           "refId": "A"
         }
       ],
-      "title": "Total de Requisições (acumulado desde o restart)",
+      "title": "Total de Requisições (período selecionado)",
       "type": "stat"
     },
     {
@@ -119,12 +119,12 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(http_requests_received_total{job=\"orders-api-dotnet\", code=~\"4..|5..\"})",
+          "expr": "sum(increase(http_requests_received_total{job=\"orders-api-dotnet\", code=~\"4..|5..\"}[$__range]))",
           "legendFormat": "Erros",
           "refId": "A"
         }
       ],
-      "title": "Total de Erros 4xx+5xx (clique para detalhar por endpoint)",
+      "title": "Total de Erros 4xx+5xx (período selecionado)",
       "type": "stat"
     },
     {
@@ -157,12 +157,12 @@
       "targets": [
         {
           "datasource": { "type": "prometheus", "uid": "prometheus" },
-          "expr": "sum(rate(http_requests_received_total{job=\"orders-api-dotnet\", code=~\"4..|5..\"}[5m])) / sum(rate(http_requests_received_total{job=\"orders-api-dotnet\"}[5m]))",
+          "expr": "sum(rate(http_requests_received_total{job=\"orders-api-dotnet\", code=~\"4..|5..\"}[$__range])) / sum(rate(http_requests_received_total{job=\"orders-api-dotnet\"}[$__range]))",
           "legendFormat": "Taxa de Erro",
           "refId": "A"
         }
       ],
-      "title": "Taxa de Erro HTTP (janela rate[5m])",
+      "title": "Taxa de Erro HTTP (período selecionado)",
       "type": "stat"
     },
     {

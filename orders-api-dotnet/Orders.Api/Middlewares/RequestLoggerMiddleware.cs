@@ -1,5 +1,7 @@
 using System.Diagnostics;
+using System.Security.Cryptography;
 using System.Text;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -22,10 +24,21 @@ public class RequestLoggerMiddleware
 
     public async Task InvokeAsync(HttpContext context)
     {
-        var traceId = context.Request.Headers["X-Trace-Id"].FirstOrDefault() ?? Guid.NewGuid().ToString();
+        var incomingTraceId = context.Request.Headers["X-Trace-Id"].FirstOrDefault();
+        var traceId = !string.IsNullOrWhiteSpace(incomingTraceId)
+            ? incomingTraceId
+            : Guid.NewGuid().ToString("D");
+
+        context.TraceIdentifier = traceId;
+        context.Items["TraceId"] = traceId;
+        context.Response.Headers["X-Trace-Id"] = traceId;
+        var userId = context.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? context.User?.FindFirst("sub")?.Value
+            ?? context.Request.Headers["X-User-Id"].FirstOrDefault()
+            ?? string.Empty;
         var timestamp = DateTime.UtcNow;
         var stopwatch = Stopwatch.StartNew();
-        string body = "";
+        string bodyHash = "";
         int statusCode;
         string stackTrace = "";
         Exception? capturedException = null;
@@ -35,7 +48,12 @@ public class RequestLoggerMiddleware
         {
             context.Request.EnableBuffering();
             using var reader = new StreamReader(context.Request.Body, Encoding.UTF8, leaveOpen: true);
-            body = await reader.ReadToEndAsync();
+            var body = await reader.ReadToEndAsync();
+            if (!string.IsNullOrEmpty(body))
+            {
+                var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(body));
+                bodyHash = Convert.ToHexString(hashBytes).ToLowerInvariant();
+            }
             context.Request.Body.Position = 0;
         }
         catch { }
@@ -62,12 +80,13 @@ public class RequestLoggerMiddleware
                 $"{stopwatch.Elapsed.TotalSeconds:F3}\t" +
                 $"{context.Request.Method}\t" +
                 $"{context.Request.Path}{context.Request.QueryString}\t" +
-                $"{body}\t" +
+                $"{userId}\t" +
+                $"{bodyHash}\t" +
                 $"{stackTrace}";
 
             var logFileName = $"{_appName}_log_{DateTime.UtcNow:yyyyMMdd}.txt";
             var logFilePath = Path.Combine(_logDirectory, logFileName);
-            var header = "appname\ttrace_id\ttimestamp\tstatus\telapsedSeconds\tmethod\taction\tbody\tstackTrace";
+            var header = "appname\ttrace_id\ttimestamp\tstatus\telapsedSeconds\tmethod\taction\tuserid\tbody\tstackTrace";
 
             try
             {
