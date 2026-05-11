@@ -13,7 +13,7 @@ export const messagesProcessed = new client.Counter({
 
 export const messageDuration = new client.Histogram({
   name: 'consumer_message_duration_seconds',
-  help: 'Duração do processamento de cada mensagem em segundos',
+  help: 'Duracao do processamento de cada mensagem em segundos',
   labelNames: ['queue'],
   buckets: [0.1, 0.5, 1, 2, 5, 10, 30],
   registers: [register],
@@ -26,9 +26,13 @@ export const messagesActive = new client.Gauge({
   registers: [register],
 });
 
-export function startMetricsServer(port = 9100) {
-  http.createServer(async (_req, res) => {
-    res.setHeader('Content-Type', register.contentType);
-    res.end(await register.metrics());
-  }).listen(port, () => console.log(`Metrics em :${port}/metrics`));
+export function startMetricsServer(port = 9100): void {
+  http
+    .createServer(async (_req, res) => {
+      res.setHeader('Content-Type', register.contentType);
+      res.end(await register.metrics());
+    })
+    .listen(port, () => {
+      console.log(`Metrics em :${port}/metrics`);
+    });
 }

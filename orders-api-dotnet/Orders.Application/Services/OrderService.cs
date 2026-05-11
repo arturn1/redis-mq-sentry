@@ -35,8 +35,8 @@ public class OrderService : IOrderService
 
         try
         {
-            await _orderQueuePublisher.PublishAsync(order, cancellationToken);
-            //await _rabbitQueuePublisher.PublishAsync(order, cancellationToken);
+            //await _orderQueuePublisher.PublishAsync(order, cancellationToken);
+            await _rabbitQueuePublisher.PublishAsync(order, cancellationToken);
         }
         catch (Exception ex)
         {

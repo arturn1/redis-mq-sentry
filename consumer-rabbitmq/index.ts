@@ -1,49 +1,100 @@
-// Consumer RabbitMQ
-// Este serviço consome mensagens da fila 'rabbitmq-queue' e simula o processamento de cada mensagem.
-// Faz parte do laboratório de estudos de mensageria e arquitetura distribuída.
+import amqp, { Channel, ChannelModel, ConsumeMessage } from 'amqplib';
 
-import amqp, { ConsumeMessage } from 'amqplib';
-import Bull from 'bull';
+import {
+  METRICS_PORT,
+  ORDERS_DLQ,
+  ORDERS_QUEUE,
+  PREFETCH_COUNT,
+  RABBITMQ_RECONNECT_DELAY_MS,
+  RABBITMQ_URL,
+} from './config/appConfig';
+import { messagesProcessed, messageDuration, messagesActive, startMetricsServer } from './metrics';
+import { processRabbitOrderMessage } from './services/orderProcessingService';
 
-import { messagesProcessed, messageDuration, messagesActive, register, startMetricsServer } from './src/metrics';
-import { saveOrder } from './src/db';
+startMetricsServer(METRICS_PORT);
 
-const ORDERS_QUEUE = 'orders_queue';
-const ORDERS_DQL = 'orders_dlq';
+let connection: ChannelModel | null = null;
+let channel: Channel | null = null;
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let isShuttingDown = false;
 
-startMetricsServer(9100);
+function scheduleReconnect(): void {
+  if (isShuttingDown || reconnectTimer) {
+    return;
+  }
 
-const emailQueue = new Bull('email', { redis: { host: 'redis', port: 6379 } });
-
-async function start() {
-
-  const conn = await amqp.connect('amqp://rabbitmq');
-  const ch = await conn.createChannel();
-  console.log('Consumer RabbitMQ: waiting for messages...');
-  ch.consume(ORDERS_QUEUE, async (msg: ConsumeMessage | null) => {
-    if (msg) {
-      const content = msg.content.toString();
-      console.log('Consumer RabbitMQ: processing', content);
-      const end = messageDuration.startTimer({ queue: ORDERS_QUEUE });
-      messagesActive.inc({ queue: ORDERS_QUEUE });
-      try {
-        // Parse order from message (assume JSON)
-        const order = JSON.parse(content);
-        console.log('Consumer RabbitMQ: extracted order', order);
-        await saveOrder(order);
-        ch.ack(msg);
-        messagesProcessed.inc({ queue: ORDERS_QUEUE, status: 'success' });
-        console.log('Consumer RabbitMQ: finished', content);
-      } catch (err) {
-        ch.nack(msg, false, false);
-        messagesProcessed.inc({ queue: ORDERS_QUEUE, status: 'error' });
-        console.error('Consumer RabbitMQ: Error processing', err);
-      } finally {
-        end();
-        messagesActive.dec({ queue: ORDERS_QUEUE });
-      }
-    }
-  });
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null;
+    void startConsumer();
+  }, RABBITMQ_RECONNECT_DELAY_MS);
 }
 
-start();
+async function handleMessage(msg: ConsumeMessage | null): Promise<void> {
+  const currentChannel = channel;
+
+  if (!msg || !currentChannel) {
+    return;
+  }
+
+  const payload = msg.content.toString();
+  const end = messageDuration.startTimer({ queue: ORDERS_QUEUE });
+  messagesActive.inc({ queue: ORDERS_QUEUE });
+
+  try {
+    await processRabbitOrderMessage(payload);
+    currentChannel.ack(msg);
+    messagesProcessed.inc({ queue: ORDERS_QUEUE, status: 'success' });
+  } catch (error) {
+    currentChannel.nack(msg, false, false);
+    messagesProcessed.inc({ queue: ORDERS_QUEUE, status: 'error' });
+    console.error('Consumer RabbitMQ: error processing message:', error);
+  } finally {
+    end();
+    messagesActive.dec({ queue: ORDERS_QUEUE });
+  }
+}
+
+async function startConsumer(): Promise<void> {
+  try {
+    const activeConnection = await amqp.connect(RABBITMQ_URL);
+    activeConnection.on('error', (error: Error) => {
+      console.error('Consumer RabbitMQ: connection error:', error.message);
+    });
+    activeConnection.on('close', () => {
+      connection = null;
+      channel = null;
+
+      if (!isShuttingDown) {
+        console.error('Consumer RabbitMQ: connection closed, scheduling reconnect...');
+        scheduleReconnect();
+      }
+    });
+
+    const activeChannel = await activeConnection.createChannel();
+    await activeChannel.assertQueue(ORDERS_DLQ, { durable: true });
+    await activeChannel.assertQueue(ORDERS_QUEUE, {
+        durable: true,
+        deadLetterExchange: '',
+        deadLetterRoutingKey: ORDERS_DLQ,
+      });
+    await activeChannel.prefetch(PREFETCH_COUNT);
+
+    connection = activeConnection;
+    channel = activeChannel;
+
+    console.log(`Consumer RabbitMQ: waiting for messages on ${ORDERS_QUEUE}...`);
+
+    await activeChannel.consume(
+      ORDERS_QUEUE,
+      (msg: ConsumeMessage | null) => {
+        void handleMessage(msg);
+      },
+      { noAck: false }
+    );
+  } catch (error) {
+    console.error('Consumer RabbitMQ: failed to start consumer:', error);
+    scheduleReconnect();
+  }
+}
+
+void startConsumer();

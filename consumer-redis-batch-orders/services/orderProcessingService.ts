@@ -2,6 +2,7 @@ import { saveOrder } from '../infra/db';
 import { jobsProcessed, jobDuration, jobsActive } from '../metrics';
 import { QUEUE_NAME } from '../config/appConfig';
 import { extractOrderFromJobData } from '../types/order';
+import { withTraceId } from '../shared/queuePayload';
 import type { BatchJobData, BatchStatusEntry, EmailNotification } from '../types/batch';
 
 export interface ConsumerJob {
@@ -25,6 +26,7 @@ function extractBatchMetadata(data: unknown): BatchJobData {
   return {
     user: typeof payload.user === 'string' ? payload.user : undefined,
     batchId: typeof payload.batchId === 'string' ? payload.batchId : undefined,
+    traceId: typeof payload.trace_id === 'string' ? payload.trace_id : undefined,
     message: payload.message,
     total: typeof payload.total === 'number' ? payload.total : undefined,
   };
@@ -46,6 +48,15 @@ function ensureUser(user?: string): string {
   return 'unknown-user';
 }
 
+function extractTraceId(jobData: any): string {
+  return jobData.trace_id
+    || jobData.traceId
+    || jobData.X_Trace_Id
+    || jobData.jobData?.trace_id
+    || jobData.jobData?.traceId
+    || `trace_${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
+}
+
 export async function processBatchOrderJob(job: ConsumerJob, emailQueue: EmailQueue): Promise<void> {
   const end = jobDuration.startTimer({ queue: QUEUE_NAME });
   jobsActive.inc({ queue: QUEUE_NAME });
@@ -53,6 +64,7 @@ export async function processBatchOrderJob(job: ConsumerJob, emailQueue: EmailQu
   const metadata = extractBatchMetadata(job.data);
   const batchId = ensureBatchIdentity(metadata.batchId);
   const user = ensureUser(metadata.user);
+  const traceId = extractTraceId(metadata);
   const total = metadata.total ?? 1;
 
   try {
@@ -60,7 +72,9 @@ export async function processBatchOrderJob(job: ConsumerJob, emailQueue: EmailQu
     await saveOrder(order);
 
     if (!batchStatus[batchId]) {
-      await emailQueue.add({ user, type: 'start-processing', batchId, message: metadata.message });
+      await emailQueue.add(
+        withTraceId({ user, type: 'start-processing', batchId, message: metadata.message }, traceId)
+      );
       batchStatus[batchId] = { total, done: 0, user };
     }
 
@@ -71,20 +85,25 @@ export async function processBatchOrderJob(job: ConsumerJob, emailQueue: EmailQu
     batchStatus[batchId].done++;
 
     if (batchStatus[batchId].done >= batchStatus[batchId].total) {
-      await emailQueue.add({ user, type: 'batch_end', batchId });
+      await emailQueue.add(withTraceId({ user, type: 'batch_end', batchId }, traceId));
       delete batchStatus[batchId];
     }
 
     jobsProcessed.inc({ queue: QUEUE_NAME, status: 'success' });
   } catch (error) {
     jobsProcessed.inc({ queue: QUEUE_NAME, status: 'error' });
-    await emailQueue.add({
-      user,
-      type: 'error',
-      batchId,
-      message: metadata.message,
-      erro: String(error),
-    });
+    await emailQueue.add(
+      withTraceId(
+        {
+          user,
+          type: 'error',
+          batchId,
+          message: metadata.message,
+          erro: String(error),
+        },
+        traceId
+      )
+    );
     throw error;
   } finally {
     end();

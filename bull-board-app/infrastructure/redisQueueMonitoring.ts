@@ -1,3 +1,4 @@
+import { EMAIL_QUEUE, ORDERS_BATCH_QUEUE, ORDERS_QUEUE } from '../config/appConfig';
 import { attachQueueLogListeners } from '../logger/queueLogger';
 import { emailQueue, redisQueue, redisQueueBatch } from './redisQueueRegistry';
 
@@ -14,13 +15,13 @@ export function initializeRedisQueueMonitoring(): void {
     return;
   }
 
-  attachQueueErrorListener(redisQueue, 'redis-orders');
-  attachQueueErrorListener(redisQueueBatch, 'redis-orders-batch');
-  attachQueueErrorListener(emailQueue, 'email');
+  attachQueueErrorListener(redisQueue, ORDERS_QUEUE);
+  attachQueueErrorListener(redisQueueBatch, ORDERS_BATCH_QUEUE);
+  attachQueueErrorListener(emailQueue, EMAIL_QUEUE);
 
-  attachQueueLogListeners(redisQueue, 'bull-board-app-redis-orders');
-  attachQueueLogListeners(redisQueueBatch, 'bull-board-app-redis-orders-batch');
-  attachQueueLogListeners(emailQueue, 'bull-board-app-email');
+  attachQueueLogListeners(redisQueue, `bull-board-app-${ORDERS_QUEUE}`);
+  attachQueueLogListeners(redisQueueBatch, `bull-board-app-${ORDERS_BATCH_QUEUE}`);
+  attachQueueLogListeners(emailQueue, `bull-board-app-${EMAIL_QUEUE}`);
 
   isInitialized = true;
 }

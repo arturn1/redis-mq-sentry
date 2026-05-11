@@ -20,7 +20,7 @@ const LOGS_DIR = path.join(process.cwd(), 'logs');
 const MONGO_URI = process.env.MONGODB_URI || 'mongodb://mongo:27017';
 const DB_NAME = process.env.MONGODB_DB || 'logs';
 const COLLECTION = process.env.MONGODB_COLLECTION || 'app_logs';
-const FLUSH_INTERVAL_MS = 60 * 1000;
+const FLUSH_INTERVAL_MS = 1000;
 
 let isRunning = false;
 
