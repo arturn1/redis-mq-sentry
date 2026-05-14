@@ -4,23 +4,22 @@ using Orders.Domain.Entities;
 
 namespace Orders.Application.Services;
 
-
+/// <summary>
+/// Order business logic service
+/// Uses IOrderPublisher abstraction to support different backends (v1→RabbitMQ, v2→Redis)
+/// </summary>
 public class OrderService : IOrderService
 {
     private readonly IOrderRepository _orderRepository;
-    private readonly IOrderQueuePublisher _orderQueuePublisher;
-    private readonly IRabbitQueuePublisher _rabbitQueuePublisher;
+    private readonly IOrderPublisher _orderPublisher;
 
     public OrderService(
         IOrderRepository orderRepository,
-        IOrderQueuePublisher orderQueuePublisher,
-        IRabbitQueuePublisher rabbitQueuePublisher)
+        IOrderPublisher orderPublisher)
     {
         _orderRepository = orderRepository;
-        _orderQueuePublisher = orderQueuePublisher;
-        _rabbitQueuePublisher = rabbitQueuePublisher;
+        _orderPublisher = orderPublisher;
     }
-
 
     public async Task<OrderResponse> CreateAsync(CreateOrderRequest request, CancellationToken cancellationToken)
     {
@@ -35,8 +34,7 @@ public class OrderService : IOrderService
 
         try
         {
-            //await _orderQueuePublisher.PublishAsync(order, cancellationToken);
-            await _rabbitQueuePublisher.PublishAsync(order, cancellationToken);
+            await _orderPublisher.PublishAsync(order, cancellationToken);
         }
         catch (Exception ex)
         {

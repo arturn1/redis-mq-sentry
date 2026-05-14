@@ -6,6 +6,11 @@ export const METRICS_PORT = 9100;
 export const PREFETCH_COUNT = 10;
 export const RABBITMQ_RECONNECT_DELAY_MS = 3000;
 
+// Retry policy: exponential backoff with jitter
+export const RETRY_MAX_ATTEMPTS = 3;
+export const RETRY_BASE_DELAY_MS = 500;
+export const RETRY_MAX_DELAY_MS = 10000;
+
 export const SQL_SERVER_CONFIG = {
   user: 'sa',
   password: 'Your_strong_password123',

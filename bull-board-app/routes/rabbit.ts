@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { RabbitMessagingService } from '../services/rabbitMessagingService';
+import { ContractValidationError, parseOrderPayloadV1 } from '../shared/contracts/orderContract';
 
 const router = Router();
 
@@ -78,15 +79,19 @@ router.post('/send-ttl', async (req: Request, res: Response) => {
 });
 
 router.post('/send/orders', async (req: Request, res: Response) => {
-  const { id, customerName, totalAmount, status, createdAtUtc } = req.body;
-
-  if (!id || !customerName || totalAmount == null || !status || !createdAtUtc) {
-    return res.status(400).json({ ok: false, info: 'Invalid order payload' });
+  let order;
+  try {
+    order = parseOrderPayloadV1(req.body?.order ?? req.body);
+  } catch (error) {
+    if (error instanceof ContractValidationError) {
+      return res.status(400).json({ ok: false, contractVersion: 'v1', info: error.message });
+    }
+    return res.status(400).json({ ok: false, contractVersion: 'v1', info: 'Invalid order payload' });
   }
 
   try {
-    await RabbitMessagingService.sendOrder({ id, customerName, totalAmount, status, createdAtUtc });
-    res.json({ ok: true, info: 'Order sent to queue orders_queue' });
+    await RabbitMessagingService.sendOrder(order);
+    res.json({ ok: true, contractVersion: 'v1', info: 'Order sent to queue orders_queue' });
   } catch (err) {
     res.status(500).json({ ok: false, info: 'Error sending order to queue', error: String(err) });
   }

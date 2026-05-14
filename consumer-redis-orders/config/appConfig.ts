@@ -6,3 +6,10 @@ export const REDIS_CONFIG = {
 };
 
 export const METRICS_PORT = 9100;
+
+// Retry policy for Bull queue
+export const JOB_ATTEMPTS = 3;
+export const JOB_BACKOFF = {
+  type: 'exponential' as const,
+  delay: 500,
+};

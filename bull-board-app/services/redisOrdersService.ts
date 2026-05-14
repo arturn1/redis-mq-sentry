@@ -1,6 +1,7 @@
 import { getRedisClient, ensureRedisConnection } from '../infrastructure/redisConnection';
 import { emailQueue, redisQueue, redisQueueBatch } from '../infrastructure/redisQueueRegistry';
 import { withTraceId } from '../shared/queuePayload';
+import type { ContractVersion, ParseOrderResult } from '../shared/contracts/orderContract';
 
 const LIST_KEY = 'orders:pending';
 const HASH_PREFIX = 'order:';
@@ -88,19 +89,46 @@ export const RedisOrdersService = {
     return { ok: true };
   },
 
-  async sendBatch(orders: unknown[], user: unknown, traceId: string) {
+  async sendBatch(orders: ParseOrderResult[], user: string, traceId: string, contractVersion: ContractVersion) {
     const batchId = `batch_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
 
     await emailQueue.add(withTraceId({ user, type: 'batch_start', batchId, total: orders.length }, traceId));
 
-    for (const order of orders) {
-      await redisQueueBatch.add(withTraceId({ order, user, batchId, total: orders.length }, traceId));
+    for (const parsedOrder of orders) {
+      const isV2 = contractVersion === 'v2';
+      await redisQueueBatch.add(
+        withTraceId(
+          {
+            contractVersion,
+            contractType: isV2 ? 'redis.order.batch.v2' : 'redis.order.batch.v1',
+            order: parsedOrder.normalizedOrder,
+            orderV1: parsedOrder.rawOrderV1,
+            orderV2: parsedOrder.rawOrderV2,
+            user,
+            batchId,
+            total: orders.length,
+          },
+          traceId
+        )
+      );
     }
 
     return { batchId };
   },
 
-  async sendFastOrder(order: unknown, traceId: string) {
-    await redisQueue.add(withTraceId({ order }, traceId));
+  async sendFastOrder(parsedOrder: ParseOrderResult, traceId: string) {
+    const isV2 = parsedOrder.contractVersion === 'v2';
+    await redisQueue.add(
+      withTraceId(
+        {
+          contractVersion: parsedOrder.contractVersion,
+          contractType: isV2 ? 'redis.order.fast.v2' : 'redis.order.fast.v1',
+          order: parsedOrder.normalizedOrder,
+          orderV1: parsedOrder.rawOrderV1,
+          orderV2: parsedOrder.rawOrderV2,
+        },
+        traceId
+      )
+    );
   },
 };

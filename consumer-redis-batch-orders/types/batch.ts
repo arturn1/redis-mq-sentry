@@ -4,6 +4,8 @@ export interface BatchJobData {
   traceId?: string;
   message?: unknown;
   total?: number;
+  contractVersion?: string;
+  contractType?: string;
 }
 
 export interface BatchStatusEntry {

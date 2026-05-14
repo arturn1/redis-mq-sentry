@@ -1,5 +1,6 @@
 import type { Channel, ConsumeMessage } from 'amqplib';
 import { RabbitConnection } from '../infrastructure/rabbitConnection';
+import type { OrderPayloadV1 } from '../shared/contracts/orderContract';
 
 const DLQ_QUEUE = 'default_dlq';
 const DEFAULT_QUEUE = 'default_queue';
@@ -149,7 +150,7 @@ export const RabbitMessagingService = {
     });
   },
 
-  async sendOrder(order: { id: string; customerName: string; totalAmount: number; status: string; createdAtUtc: string }) {
+  async sendOrder(order: OrderPayloadV1) {
     return withRabbitChannel(async (channel) => {
       await channel.assertQueue(ORDERS_DLQ, { durable: true });
       await channel.assertQueue(ORDERS_QUEUE, {
@@ -157,7 +158,21 @@ export const RabbitMessagingService = {
         deadLetterExchange: '',
         deadLetterRoutingKey: ORDERS_DLQ,
       });
-      await channel.sendToQueue(ORDERS_QUEUE, Buffer.from(JSON.stringify(order)), {
+
+      const contractMessage = {
+        contractVersion: 'v1',
+        contractType: 'rabbit.order.v1',
+        order: {
+          Id: order.id,
+          CustomerName: order.customerName,
+          TotalAmount: order.totalAmount,
+          CreatedAtUtc: order.createdAtUtc,
+        },
+        orderV1: order,
+        ...order,
+      };
+
+      await channel.sendToQueue(ORDERS_QUEUE, Buffer.from(JSON.stringify(contractMessage)), {
         persistent: true,
       });
     });

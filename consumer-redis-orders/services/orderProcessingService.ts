@@ -1,4 +1,5 @@
 import { saveOrder } from '../infra/db';
+import { isAlreadyProcessed } from '../infra/idempotency';
 import { jobsProcessed, jobDuration, jobsActive } from '../metrics';
 import { QUEUE_NAME } from '../config/appConfig';
 import { extractOrderFromJobData } from '../types/order';
@@ -15,10 +16,20 @@ export async function processOrderJob(job: ConsumerJob): Promise<void> {
   console.log('Consumer Redis Fast: processando job', job.id);
 
   try {
-    console.log('Consumer Redis Fast: extraindo order do job data', job.data);
     const order = extractOrderFromJobData(job.data);
-    await saveOrder(order);
 
+    if (!order) {
+      throw new Error(`Order payload invalido: nao foi possivel extrair order do job ${job.id}`);
+    }
+
+    // Idempotency: skip if this orderId was already processed
+    if (order.id && await isAlreadyProcessed(order.id)) {
+      console.warn(`Consumer Redis Fast: order ${order.id} ja processada (duplicata), ignorando job ${job.id}`);
+      jobsProcessed.inc({ queue: QUEUE_NAME, status: 'duplicate' });
+      return;
+    }
+
+    await saveOrder(order);
     jobsProcessed.inc({ queue: QUEUE_NAME, status: 'success' });
     console.log('Consumer Redis Fast: finalizado', job.id);
   } catch (error) {

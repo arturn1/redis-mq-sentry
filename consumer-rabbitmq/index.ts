@@ -7,6 +7,9 @@ import {
   PREFETCH_COUNT,
   RABBITMQ_RECONNECT_DELAY_MS,
   RABBITMQ_URL,
+  RETRY_BASE_DELAY_MS,
+  RETRY_MAX_ATTEMPTS,
+  RETRY_MAX_DELAY_MS,
 } from './config/appConfig';
 import { messagesProcessed, messageDuration, messagesActive, startMetricsServer } from './metrics';
 import { processRabbitOrderMessage } from './services/orderProcessingService';
@@ -17,6 +20,30 @@ let connection: ChannelModel | null = null;
 let channel: Channel | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let isShuttingDown = false;
+
+// Idempotency: track processed message IDs in memory (TTL via Map with timestamp)
+const processedIds = new Map<string, number>();
+const PROCESSED_ID_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+function purgeExpiredProcessedIds(): void {
+  const now = Date.now();
+  for (const [id, ts] of processedIds) {
+    if (now - ts > PROCESSED_ID_TTL_MS) {
+      processedIds.delete(id);
+    }
+  }
+}
+
+function computeBackoffDelay(attempt: number): number {
+  const exponential = RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1);
+  const jitter = Math.random() * exponential * 0.3;
+  return Math.min(exponential + jitter, RETRY_MAX_DELAY_MS);
+}
+
+function getDeliveryAttempt(msg: ConsumeMessage): number {
+  const raw = msg.properties.headers?.['x-delivery-count'];
+  return typeof raw === 'number' ? raw + 1 : 1;
+}
 
 function scheduleReconnect(): void {
   if (isShuttingDown || reconnectTimer) {
@@ -37,17 +64,65 @@ async function handleMessage(msg: ConsumeMessage | null): Promise<void> {
   }
 
   const payload = msg.content.toString();
+  const attempt = getDeliveryAttempt(msg);
+
+  // Idempotency: skip already-processed messages
+  const messageId: string | undefined = msg.properties.messageId;
+  if (messageId) {
+    purgeExpiredProcessedIds();
+    if (processedIds.has(messageId)) {
+      currentChannel.ack(msg);
+      messagesProcessed.inc({ queue: ORDERS_QUEUE, status: 'duplicate' });
+      return;
+    }
+  }
+
   const end = messageDuration.startTimer({ queue: ORDERS_QUEUE });
   messagesActive.inc({ queue: ORDERS_QUEUE });
 
   try {
     await processRabbitOrderMessage(payload);
+
+    if (messageId) {
+      processedIds.set(messageId, Date.now());
+    }
+
     currentChannel.ack(msg);
     messagesProcessed.inc({ queue: ORDERS_QUEUE, status: 'success' });
   } catch (error) {
-    currentChannel.nack(msg, false, false);
-    messagesProcessed.inc({ queue: ORDERS_QUEUE, status: 'error' });
-    console.error('Consumer RabbitMQ: error processing message:', error);
+    const isLastAttempt = attempt >= RETRY_MAX_ATTEMPTS;
+
+    if (isLastAttempt) {
+      // Exceeded max attempts: send to DLQ
+      currentChannel.nack(msg, false, false);
+      messagesProcessed.inc({ queue: ORDERS_QUEUE, status: 'dead_letter' });
+      console.error(
+        `Consumer RabbitMQ: message sent to DLQ after ${attempt} attempts:`,
+        error
+      );
+    } else {
+      const delay = computeBackoffDelay(attempt);
+      messagesProcessed.inc({ queue: ORDERS_QUEUE, status: 'retry' });
+      console.warn(
+        `Consumer RabbitMQ: attempt ${attempt}/${RETRY_MAX_ATTEMPTS}, retrying in ${Math.round(delay)}ms`
+      );
+
+      // Nack without requeue and re-publish with incremented delivery count
+      currentChannel.nack(msg, false, false);
+      setTimeout(() => {
+        const activeChannel = channel;
+        if (!activeChannel) return;
+        activeChannel.sendToQueue(
+          ORDERS_QUEUE,
+          msg.content,
+          {
+            persistent: true,
+            messageId: msg.properties.messageId,
+            headers: { 'x-delivery-count': attempt },
+          }
+        );
+      }, delay);
+    }
   } finally {
     end();
     messagesActive.dec({ queue: ORDERS_QUEUE });

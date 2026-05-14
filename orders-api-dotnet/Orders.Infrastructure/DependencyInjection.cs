@@ -29,6 +29,15 @@ public static class DependencyInjection
         services.AddSingleton<RabbitConnectionProvider>();
         services.AddSingleton<RabbitTopologyInitializer>();
         services.AddSingleton<IRabbitQueuePublisher, RabbitQueuePublisher>();
+
+        // Publisher abstraction with keyed registration (ASP.NET Core 8+)
+        // Default: RabbitMQ (v1 compatibility)
+        services.AddScoped<IOrderPublisher, RabbitOrderPublisher>();
+        // v1 explicitly uses RabbitMQ
+        services.AddKeyedScoped<IOrderPublisher, RabbitOrderPublisher>("v1");
+        // v2 uses Redis
+        services.AddKeyedScoped<IOrderPublisher, RedisOrderPublisher>("v2");
+
         services.AddScoped<IOrderService, OrderService>();
 
         return services;

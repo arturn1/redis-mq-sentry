@@ -232,13 +232,13 @@
         depends_on:
           - prometheus
       
-          # SQL Server para uso pelo orders-api-dotnet
+          # SQL Server para uso pelo orders-api-dotnet (Azure SQL Edge - otimizado para Mac/arm64)
       sqlserver:
-        image: mcr.microsoft.com/mssql/server:2022-latest
+        image: mcr.microsoft.com/azure-sql-edge:latest
         container_name: sqlserver
         environment:
           - ACCEPT_EULA=Y
-          - SA_PASSWORD=Your_strong_password123
+          - MSSQL_SA_PASSWORD=Your_strong_password123
           - MSSQL_PID=Developer
         ports:
           - "1433:1433"

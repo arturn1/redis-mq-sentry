@@ -1,4 +1,5 @@
 import { saveOrder } from '../infra/db';
+import { isAlreadyProcessed } from '../infra/idempotency';
 import { jobsProcessed, jobDuration, jobsActive } from '../metrics';
 import { QUEUE_NAME } from '../config/appConfig';
 import { extractOrderFromJobData } from '../types/order';
@@ -29,6 +30,8 @@ function extractBatchMetadata(data: unknown): BatchJobData {
     traceId: typeof payload.trace_id === 'string' ? payload.trace_id : undefined,
     message: payload.message,
     total: typeof payload.total === 'number' ? payload.total : undefined,
+    contractVersion: typeof payload.contractVersion === 'string' ? payload.contractVersion : undefined,
+    contractType: typeof payload.contractType === 'string' ? payload.contractType : undefined,
   };
 }
 
@@ -67,8 +70,26 @@ export async function processBatchOrderJob(job: ConsumerJob, emailQueue: EmailQu
   const traceId = extractTraceId(metadata);
   const total = metadata.total ?? 1;
 
+  if (metadata.contractVersion && metadata.contractVersion !== 'v1' && metadata.contractVersion !== 'v2') {
+    throw new Error(
+      `Unsupported contractVersion: ${metadata.contractVersion}. Supported versions: v1, v2.`
+    );
+  }
+
   try {
     const order = extractOrderFromJobData(job.data);
+
+    if (!order) {
+      throw new Error(`Order payload invalido: nao foi possivel extrair order do job ${job.id}`);
+    }
+
+    // Idempotency: skip if this orderId was already processed
+    if (order.id && await isAlreadyProcessed(order.id)) {
+      console.warn(`Consumer Redis Batch: order ${order.id} ja processada (duplicata), ignorando job ${job.id}`);
+      jobsProcessed.inc({ queue: QUEUE_NAME, status: 'duplicate' });
+      return;
+    }
+
     await saveOrder(order);
 
     if (!batchStatus[batchId]) {
