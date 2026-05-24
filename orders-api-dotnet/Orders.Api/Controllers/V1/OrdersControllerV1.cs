@@ -2,8 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 using Orders.Api.Contracts;
 using Orders.Application.Abstractions;
 using Orders.Application.DTOs;
-using Orders.Application.Services;
-using Orders.Domain.Entities;
 
 namespace Orders.Api.Controllers.V1;
 
@@ -17,14 +15,14 @@ namespace Orders.Api.Controllers.V1;
 public class OrdersControllerV1 : ControllerBase
 {
     private readonly IOrderRepository _orderRepository;
-    private readonly IOrderPublisher _orderPublisher;
+    private readonly IOrderWorkflowService _orderWorkflowService;
 
     public OrdersControllerV1(
         IOrderRepository orderRepository,
-        [FromKeyedServices("v1")] IOrderPublisher orderPublisher)
+        IOrderWorkflowService orderWorkflowService)
     {
         _orderRepository = orderRepository;
-        _orderPublisher = orderPublisher;
+        _orderWorkflowService = orderWorkflowService;
     }
 
     /// <summary>
@@ -42,37 +40,26 @@ public class OrdersControllerV1 : ControllerBase
         if (request.TotalAmount <= 0)
             return BadRequest(new { message = "TotalAmount deve ser maior que zero." });
 
-        var order = new Order
-        {
-            Id = Guid.NewGuid(),
-            CustomerName = request.CustomerName.Trim(),
-            TotalAmount = request.TotalAmount,
-            CreatedAtUtc = DateTime.UtcNow,
-            Status = OrderStatus.Enqueued
-        };
-
+        OrderResponse response;
         try
         {
-            await _orderPublisher.PublishAsync(order, cancellationToken);
+            response = await _orderWorkflowService.CreateWithOutboxSagaAsync(
+                new CreateOrderRequest(request.CustomerName.Trim(), request.TotalAmount),
+                backend: "rabbitmq",
+                contractVersion: "v1",
+                cancellationToken);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error publishing order: " + ex.Message });
+            return StatusCode(500, new { message = "Error creating workflow: " + ex.Message });
         }
-
-        var response = new OrderResponse(
-            order.Id,
-            order.CustomerName,
-            order.TotalAmount,
-            order.Status.ToString(),
-            order.CreatedAtUtc);
 
         // Add deprecation headers
         Response.Headers.Add("Deprecation", "true");
         Response.Headers.Add("Sunset", "Wed, 01 Jan 2027 00:00:00 GMT");
         Response.Headers.Add("Link", "<https://api.company.com/v2/orders>; rel=\"successor-version\"");
 
-        return CreatedAtAction(nameof(List), new { id = order.Id }, response);
+        return CreatedAtAction(nameof(List), new { id = response.Id }, response);
     }
 
     /// <summary>

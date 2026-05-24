@@ -4,6 +4,7 @@ public enum OrderStatus
 {
     Created = 1,
     Enqueued = 2,
+    Compensated = 3,
 }
 
 public class Order

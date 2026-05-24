@@ -29,6 +29,10 @@ export async function processOrderJob(job: ConsumerJob): Promise<void> {
       return;
     }
 
+    if (order.status) {
+      console.log(`Consumer Redis Fast: order ${order.id} status=${order.status}`);
+    }
+
     await saveOrder(order);
     jobsProcessed.inc({ queue: QUEUE_NAME, status: 'success' });
     console.log('Consumer Redis Fast: finalizado', job.id);

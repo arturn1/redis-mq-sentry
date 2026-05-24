@@ -2,7 +2,6 @@ using Microsoft.AspNetCore.Mvc;
 using Orders.Api.Contracts;
 using Orders.Application.Abstractions;
 using Orders.Application.DTOs;
-using Orders.Domain.Entities;
 
 namespace Orders.Api.Controllers.V2;
 
@@ -15,14 +14,14 @@ namespace Orders.Api.Controllers.V2;
 public class OrdersControllerV2 : ControllerBase
 {
     private readonly IOrderRepository _orderRepository;
-    private readonly IOrderPublisher _orderPublisher;
+    private readonly IOrderWorkflowService _orderWorkflowService;
 
     public OrdersControllerV2(
         IOrderRepository orderRepository,
-        [FromKeyedServices("v2")] IOrderPublisher orderPublisher)
+        IOrderWorkflowService orderWorkflowService)
     {
         _orderRepository = orderRepository;
-        _orderPublisher = orderPublisher;
+        _orderWorkflowService = orderWorkflowService;
     }
 
     /// <summary>
@@ -53,36 +52,25 @@ public class OrdersControllerV2 : ControllerBase
             });
         }
 
-        var order = new Order
-        {
-            Id = Guid.NewGuid(),
-            CustomerName = request.CustomerName.Trim(),
-            TotalAmount = request.TotalAmount,
-            CreatedAtUtc = DateTime.UtcNow,
-            Status = OrderStatus.Enqueued
-        };
-
+        OrderResponse response;
         try
         {
-            await _orderPublisher.PublishAsync(order, cancellationToken);
+            response = await _orderWorkflowService.CreateWithOutboxSagaAsync(
+                new CreateOrderRequest(request.CustomerName.Trim(), request.TotalAmount),
+                backend: "redis",
+                contractVersion,
+                cancellationToken);
         }
         catch (Exception ex)
         {
-            return StatusCode(500, new { message = "Error publishing order: " + ex.Message });
+            return StatusCode(500, new { message = "Error creating workflow: " + ex.Message });
         }
-
-        var response = new OrderResponse(
-            order.Id,
-            order.CustomerName,
-            order.TotalAmount,
-            order.Status.ToString(),
-            order.CreatedAtUtc);
 
         // Response headers with contract info
         Response.Headers.Add("X-Contract-Version", contractVersion);
         Response.Headers.Add("X-Backend", "Redis");
 
-        return CreatedAtAction(nameof(List), new { id = order.Id }, response);
+        return CreatedAtAction(nameof(List), new { id = response.Id }, response);
     }
 
     /// <summary>
@@ -128,5 +116,21 @@ public class OrdersControllerV2 : ControllerBase
         Response.Headers.Add("X-Backend", "Redis");
 
         return Ok(new { orders = response, total });
+    }
+
+    /// <summary>
+    /// Event Sourcing (isolated): replay event stream for one order.
+    /// </summary>
+    [HttpGet("{orderId:guid}/event-state")]
+    [Produces("application/json")]
+    public async Task<IActionResult> ReplayEventState(Guid orderId, CancellationToken cancellationToken)
+    {
+        var replay = await _orderWorkflowService.ReplayOrderStateAsync(orderId, cancellationToken);
+        if (replay == null)
+        {
+            return NotFound(new { message = "No event stream found for this order." });
+        }
+
+        return Ok(replay);
     }
 }

@@ -21,6 +21,24 @@ const config: sql.config = {
   },
 };
 
+function mapStatusStringToInt(status?: string | number): number {
+  // Default to Created = 1 if status not provided
+  if (!status) return 1;
+
+  // If already a number, return it
+  if (typeof status === 'number') {
+    return status;
+  }
+
+  const statusMap: Record<string, number> = {
+    'Created': 1,
+    'Enqueued': 2,
+    'Compensated': 3,
+  };
+
+  return statusMap[status] ?? 1;
+}
+
 // Create a single pool instance for the app
 const poolPromise = new sql.ConnectionPool(config)
   .connect()
@@ -49,15 +67,15 @@ export async function saveOrder(order: OrderPayload | null | undefined): Promise
   }
 
   if (!order.customerName) {
-    throw new Error(`Order payload invalido: CustomerName ausente. Id=${order.id}`);
+    throw new Error(`Order payload invalido: customerName ausente. Id=${order.id}`);
   }
 
   if (typeof order.totalAmount !== 'number') {
-    throw new Error(`Order payload invalido: TotalAmount ausente ou invalido. Id=${order.id}`);
+    throw new Error(`Order payload invalido: totalAmount ausente ou invalido. Id=${order.id}`);
   }
 
   if (!order.createdAtUtc) {
-    throw new Error(`Order payload invalido: CreatedAtUtc ausente. Id=${order.id}`);
+    throw new Error(`Order payload invalido: createdAtUtc ausente. Id=${order.id}`);
   }
 
   const createdAtUtc = normalizeCreatedAtUtc(order.createdAtUtc);
@@ -77,16 +95,24 @@ export async function saveOrder(order: OrderPayload | null | undefined): Promise
       'INSERT INTO Orders (Id, CustomerName, TotalAmount, Status, CreatedAtUtc) VALUES (@Id, @CustomerName, @TotalAmount, @Status, @CreatedAtUtc)'
     );
 
+    const statusInt = mapStatusStringToInt(order.status);
+
     await ps.execute({
       Id: order.id,
       CustomerName: order.customerName,
       TotalAmount: order.totalAmount,
-      Status: order.status ?? 1,
+      Status: statusInt,
       CreatedAtUtc: createdAtUtc,
     });
 
     return true;
-  } catch (err) {
+  } catch (err: unknown) {
+    // SQL Server error 2627 = PRIMARY KEY violation
+    // The API's OrderWorkflowService already inserted this order — treat as idempotent success
+    if (typeof err === 'object' && err !== null && (err as { number?: number }).number === 2627) {
+      console.info(`Consumer Redis Fast: order ${order.id} ja existe no banco (idempotente), ignorando.`);
+      return true;
+    }
     console.error('Erro ao salvar order no banco:', err);
     throw err;
   } finally {

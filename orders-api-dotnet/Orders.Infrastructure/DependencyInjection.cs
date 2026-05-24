@@ -2,10 +2,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Orders.Application.Abstractions;
-using Orders.Application.Services;
 using Orders.Infrastructure.Messaging;
 using Orders.Infrastructure.Persistence;
 using Orders.Infrastructure.Repositories;
+using Orders.Infrastructure.Services;
 
 namespace Orders.Infrastructure;
 
@@ -31,14 +31,13 @@ public static class DependencyInjection
         services.AddSingleton<IRabbitQueuePublisher, RabbitQueuePublisher>();
 
         // Publisher abstraction with keyed registration (ASP.NET Core 8+)
-        // Default: RabbitMQ (v1 compatibility)
-        services.AddScoped<IOrderPublisher, RabbitOrderPublisher>();
         // v1 explicitly uses RabbitMQ
         services.AddKeyedScoped<IOrderPublisher, RabbitOrderPublisher>("v1");
         // v2 uses Redis
         services.AddKeyedScoped<IOrderPublisher, RedisOrderPublisher>("v2");
 
-        services.AddScoped<IOrderService, OrderService>();
+        services.AddScoped<IOrderWorkflowService, OrderWorkflowService>();
+        services.AddScoped<IOrderAssignmentImportService, OrderAssignmentImportService>();
 
         return services;
     }

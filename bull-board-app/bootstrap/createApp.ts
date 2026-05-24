@@ -19,8 +19,8 @@ export function createApp() {
   app.use(express.json());
 
   setupHttpMetrics(app);
-  startQueueLogUploadJob();
-  initializeRedisQueueMonitoring();
+  //startQueueLogUploadJob();
+  //initializeRedisQueueMonitoring();
 
   const serverAdapter = new ExpressAdapter();
   serverAdapter.setBasePath(BULL_BOARD_BASE_PATH);

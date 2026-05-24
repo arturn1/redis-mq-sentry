@@ -23,28 +23,28 @@ export const options = {
     v1_list_orders: {
       executor: 'constant-vus',
       exec: 'v1ListOrdersScenario',
-      vus: 200,
+      vus: 10,
       duration: '1m',
       tags: { version: 'v1', backend: 'rabbitmq' }
     },
     v1_create_orders: {
       executor: 'constant-vus',
       exec: 'v1CreateOrderScenario',
-      vus: 125,
+      vus: 12,
       duration: '1m',
       tags: { version: 'v1', backend: 'rabbitmq' }
     },
     v2_list_orders: {
       executor: 'constant-vus',
       exec: 'v2ListOrdersScenario',
-      vus: 125,
+      vus: 10,
       duration: '1m',
       tags: { version: 'v2', backend: 'redis' }
     },
     v2_create_orders: {
       executor: 'constant-vus',
       exec: 'v2CreateOrderScenario',
-      vus: 125,
+      vus: 12,
       duration: '1m',
       tags: { version: 'v2', backend: 'redis' }
     }

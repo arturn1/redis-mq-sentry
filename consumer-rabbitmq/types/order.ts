@@ -2,6 +2,7 @@ export interface OrderPayload {
   Id: string;
   CustomerName: string;
   TotalAmount: number;
+  Status?: string; // "Created", "Enqueued", "Compensated"
   CreatedAtUtc: string | Date;
 }
 
@@ -9,6 +10,7 @@ interface OrderLike {
   Id?: unknown;
   CustomerName?: unknown;
   TotalAmount?: unknown;
+  Status?: unknown;
   CreatedAtUtc?: unknown;
 }
 
@@ -56,10 +58,14 @@ export function extractOrderFromMessagePayload(payload: unknown): OrderPayload {
     throw new Error('Mensagem de order invalida: CreatedAtUtc com formato invalido.');
   }
 
+  // Status field is optional and comes as string from publisher
+  const status = typeof order.Status === 'string' ? order.Status : undefined;
+
   return {
     Id: order.Id,
     CustomerName: order.CustomerName,
     TotalAmount: order.TotalAmount,
+    Status: status,
     CreatedAtUtc: createdAtRaw,
   };
 }

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Orders.Infrastructure;
 using Orders.Infrastructure.Messaging;
 using Orders.Infrastructure.Persistence;
+using Orders.Api.BackgroundServices;
 using Prometheus;
 using System.Diagnostics;
 using System.Globalization;
@@ -17,6 +18,8 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 // Adiciona o serviço de background para upload dos logs
 builder.Services.AddHostedService<LogUploadBackgroundService>();
+builder.Services.AddHostedService<OrderOutboxDispatcherBackgroundService>();
+builder.Services.AddHostedService<OrderAssignmentImportBackgroundService>();
 
 var app = builder.Build();
 
